@@ -23,7 +23,7 @@ class GameState {
     required this.rng,
     required this.status,
     required this.skill,
-    required this.firstGameEver,
+    required this.restricted,
     required this.startedAtMs,
     required this.elapsedMs,
     this.dayOrdinal,
@@ -52,7 +52,7 @@ class GameState {
       rng: Rng.fromJson((json['rng'] as Map).cast<String, dynamic>()),
       status: GameStatus.values.byName(json['status'] as String),
       skill: (json['skill'] as num).toDouble(),
-      firstGameEver: json['firstGameEver'] as bool,
+      restricted: json['restricted'] as bool,
       startedAtMs: json['startedAtMs'] as int,
       elapsedMs: json['elapsedMs'] as int,
       dayOrdinal: json['dayOrdinal'] as int?,
@@ -80,7 +80,7 @@ class GameState {
   final Rng rng;
   final GameStatus status;
   final double skill;
-  final bool firstGameEver;
+  final bool restricted;
   final int startedAtMs;
   final int elapsedMs;
   final int? dayOrdinal;
@@ -117,7 +117,7 @@ class GameState {
         rng: rng ?? this.rng,
         status: status ?? this.status,
         skill: skill,
-        firstGameEver: firstGameEver,
+        restricted: restricted,
         startedAtMs: startedAtMs,
         elapsedMs: elapsedMs ?? this.elapsedMs,
         dayOrdinal: dayOrdinal,
@@ -139,7 +139,7 @@ class GameState {
         'rng': rng.toJson(),
         'status': status.name,
         'skill': skill,
-        'firstGameEver': firstGameEver,
+        'restricted': restricted,
         'startedAtMs': startedAtMs,
         'elapsedMs': elapsedMs,
         'dayOrdinal': dayOrdinal,
@@ -162,7 +162,7 @@ class GameState {
       other.rng == rng &&
       other.status == status &&
       other.skill == skill &&
-      other.firstGameEver == firstGameEver &&
+      other.restricted == restricted &&
       other.startedAtMs == startedAtMs &&
       other.elapsedMs == elapsedMs &&
       other.dayOrdinal == dayOrdinal;
@@ -183,7 +183,7 @@ class GameState {
         rng,
         status,
         skill,
-        firstGameEver,
+        restricted,
         startedAtMs,
         elapsedMs,
         dayOrdinal,

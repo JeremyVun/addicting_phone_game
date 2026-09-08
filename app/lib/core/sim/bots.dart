@@ -123,7 +123,7 @@ GameRecord playGame(Bot bot, int seed, double skill, {bool restricted = false}) 
 }
 
 double _currentPressure(GameState state) => Game.pressureFor(
-    state.setsGenerated - 1, state.skill, state.firstGameEver);
+    state.setsGenerated - 1, state.skill, state.restricted);
 
 bool _assisted(GameState state) {
   for (final piece in state.set) {

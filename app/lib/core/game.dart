@@ -55,8 +55,10 @@ class Game {
   }) {
     final rng = Rng(seed);
     final board = Board.empty();
-    final effectiveSkill = mode == GameMode.daily ? Director.skillMidpoint : skill;
-    final set = _generate(board, rng, 0, effectiveSkill, restricted, 3);
+    final daily = mode == GameMode.daily;
+    final effectiveSkill = daily ? Director.skillMidpoint : skill;
+    final effectiveRestricted = !daily && restricted;
+    final set = _generate(board, rng, 0, effectiveSkill, effectiveRestricted, 3);
     return GameState(
       id: '$seed-$startedAtMs',
       board: board,
@@ -72,7 +74,7 @@ class Game {
       rng: rng,
       status: GameStatus.playing,
       skill: effectiveSkill,
-      firstGameEver: restricted,
+      restricted: effectiveRestricted,
       startedAtMs: startedAtMs,
       elapsedMs: 0,
       dayOrdinal: dayOrdinal,
@@ -80,30 +82,31 @@ class Game {
   }
 
   static bool restrictedAt(GameState state) =>
-      state.firstGameEver && state.setsGenerated < onboardingSets;
+      state.restricted && state.setsGenerated < onboardingSets;
 
   static const int onboardingSets = 3;
 
-  static double pressureFor(int setsGenerated, double skill, bool firstGameEver) =>
-      (firstGameEver && setsGenerated < onboardingSets)
+  static double pressureFor(int setsGenerated, double skill, bool restricted) =>
+      (restricted && setsGenerated < onboardingSets)
           ? 0.0
           : Director.pressure(setsGenerated, skill);
 
   static double pressureAt(GameState state) =>
-      pressureFor(state.setsGenerated, state.skill, state.firstGameEver);
+      pressureFor(state.setsGenerated, state.skill, state.restricted);
 
   static List<Piece> _generate(
     Board board,
     Rng rng,
     int setsGenerated,
     double skill,
-    bool firstGameEver,
+    bool restricted,
     int count, {
     double? forcedPressure,
   }) {
-    final restricted = firstGameEver && setsGenerated < onboardingSets;
-    final p = forcedPressure ?? pressureFor(setsGenerated, skill, firstGameEver);
-    return Director.generateSet(board, rng, p, count, restricted: restricted);
+    final restrictedNow = restricted && setsGenerated < onboardingSets;
+    final p = forcedPressure ?? pressureFor(setsGenerated, skill, restricted);
+    return Director.generateSet(board, rng, p, count,
+        restricted: restrictedNow);
   }
 
   static PlacementResult place(GameState state, int slot, int row, int col) {
@@ -144,7 +147,7 @@ class Game {
         rng,
         setsGenerated,
         state.skill,
-        state.firstGameEver,
+        state.restricted,
         GameState.slotCount,
       );
       for (var i = 0; i < GameState.slotCount; i++) {
@@ -212,7 +215,7 @@ class Game {
       rng,
       state.setsGenerated,
       state.skill,
-      state.firstGameEver,
+      state.restricted,
       GameState.slotCount,
       forcedPressure: 0.0,
     );
@@ -250,7 +253,7 @@ class Game {
       rng,
       state.setsGenerated,
       state.skill,
-      state.firstGameEver,
+      state.restricted,
       open.length,
     );
     final slots = List<Piece?>.of(state.set);
