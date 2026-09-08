@@ -5,6 +5,7 @@ import 'package:settle/core/game_state.dart';
 import 'package:settle/core/piece.dart';
 import 'package:settle/core/rng.dart';
 import 'package:settle/core/sim/bots.dart';
+import 'package:settle/core/sim/smart_bot.dart';
 
 void main() {
   test('greedy takes the clearing move', () {
@@ -89,5 +90,26 @@ void main() {
       greedy += playGame(const GreedyBot(), seed, 0.5).placements;
     }
     expect(greedy, greaterThan(random * 2));
+  });
+
+  test('smart outlasts greedy and respects the placement cap', () {
+    var greedy = 0;
+    var smart = 0;
+    for (var seed = 0; seed < 5; seed++) {
+      greedy += playGame(const GreedyBot(), seed, 0.5, maxPlacements: 150)
+          .placements;
+      final record = playGame(SmartBot(), seed, 0.5, maxPlacements: 150);
+      expect(record.placements, lessThanOrEqualTo(150));
+      expect(record.censored, record.placements == 150);
+      smart += record.placements;
+    }
+    expect(smart, greaterThan(greedy));
+  });
+
+  test('smart plays only legal moves and is reproducible', () {
+    final a = playGame(SmartBot(), 99, 0.5, maxPlacements: 60);
+    final b = playGame(SmartBot(), 99, 0.5, maxPlacements: 60);
+    expect(a.placements, b.placements);
+    expect(a.score, b.score);
   });
 }
