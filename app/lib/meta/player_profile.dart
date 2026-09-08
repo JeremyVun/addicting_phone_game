@@ -16,18 +16,21 @@ class PlayerProfile {
     Set<int> unlockedThemes = const {},
     this.selectedTheme = 1,
     Set<String> achievements = const {},
-    this.dailyRewardCycleDay = 0,
-    this.dailyRewardLastClaimOrdinal = never,
+    this.rewardCycleDay = 1,
+    this.lastRewardClaimOrdinal,
+    this.rewardDismissedOrdinal,
     this.streak = 0,
-    this.lastDailyCompletedOrdinal = never,
+    this.lastCompletedOrdinal,
+    this.streakReconciledOrdinal,
     this.freezesHeld = 0,
     Map<int, int> dailyBest = const {},
     Map<int, int> dailyAttempts = const {},
-    this.dailySecondAttemptUsed = never,
-    this.lastFirstGameOfDayOrdinal = never,
+    this.dailySecondAttemptUsed,
+    this.lastFirstGameOfDayOrdinal,
     this.adFree = false,
     this.themePackOwned = false,
-    List<String> grantedPurchaseTokens = const [],
+    Set<String> pendingPurchaseTokens = const {},
+    List<String> completedPurchaseTokens = const [],
     this.lastFinishedGameId,
     this.gamesSinceInterstitial = 0,
     this.lastInterstitialClosedAt = 0,
@@ -42,7 +45,8 @@ class PlayerProfile {
        achievements = Set.unmodifiable(achievements),
        dailyBest = Map.unmodifiable(dailyBest),
        dailyAttempts = Map.unmodifiable(dailyAttempts),
-       grantedPurchaseTokens = List.unmodifiable(grantedPurchaseTokens);
+       pendingPurchaseTokens = Set.unmodifiable(pendingPurchaseTokens),
+       completedPurchaseTokens = List.unmodifiable(completedPurchaseTokens);
 
   factory PlayerProfile.initial({
     required String analyticsUnitId,
@@ -53,7 +57,6 @@ class PlayerProfile {
   );
 
   static const int version = 1;
-  static const int never = -1;
   static const int defaultThemeSlot = 1;
 
   final int coins;
@@ -65,18 +68,21 @@ class PlayerProfile {
   final Set<int> unlockedThemes;
   final int selectedTheme;
   final Set<String> achievements;
-  final int dailyRewardCycleDay;
-  final int dailyRewardLastClaimOrdinal;
+  final int rewardCycleDay;
+  final int? lastRewardClaimOrdinal;
+  final int? rewardDismissedOrdinal;
   final int streak;
-  final int lastDailyCompletedOrdinal;
+  final int? lastCompletedOrdinal;
+  final int? streakReconciledOrdinal;
   final int freezesHeld;
   final Map<int, int> dailyBest;
   final Map<int, int> dailyAttempts;
-  final int dailySecondAttemptUsed;
-  final int lastFirstGameOfDayOrdinal;
+  final int? dailySecondAttemptUsed;
+  final int? lastFirstGameOfDayOrdinal;
   final bool adFree;
   final bool themePackOwned;
-  final List<String> grantedPurchaseTokens;
+  final Set<String> pendingPurchaseTokens;
+  final List<String> completedPurchaseTokens;
   final String? lastFinishedGameId;
   final int gamesSinceInterstitial;
   final int lastInterstitialClosedAt;
@@ -104,10 +110,12 @@ class PlayerProfile {
     Set<int>? unlockedThemes,
     int? selectedTheme,
     Set<String>? achievements,
-    int? dailyRewardCycleDay,
-    int? dailyRewardLastClaimOrdinal,
+    int? rewardCycleDay,
+    int? lastRewardClaimOrdinal,
+    int? rewardDismissedOrdinal,
     int? streak,
-    int? lastDailyCompletedOrdinal,
+    int? lastCompletedOrdinal,
+    int? streakReconciledOrdinal,
     int? freezesHeld,
     Map<int, int>? dailyBest,
     Map<int, int>? dailyAttempts,
@@ -115,7 +123,8 @@ class PlayerProfile {
     int? lastFirstGameOfDayOrdinal,
     bool? adFree,
     bool? themePackOwned,
-    List<String>? grantedPurchaseTokens,
+    Set<String>? pendingPurchaseTokens,
+    List<String>? completedPurchaseTokens,
     String? lastFinishedGameId,
     int? gamesSinceInterstitial,
     int? lastInterstitialClosedAt,
@@ -136,12 +145,15 @@ class PlayerProfile {
     unlockedThemes: unlockedThemes ?? this.unlockedThemes,
     selectedTheme: selectedTheme ?? this.selectedTheme,
     achievements: achievements ?? this.achievements,
-    dailyRewardCycleDay: dailyRewardCycleDay ?? this.dailyRewardCycleDay,
-    dailyRewardLastClaimOrdinal:
-        dailyRewardLastClaimOrdinal ?? this.dailyRewardLastClaimOrdinal,
+    rewardCycleDay: rewardCycleDay ?? this.rewardCycleDay,
+    lastRewardClaimOrdinal:
+        lastRewardClaimOrdinal ?? this.lastRewardClaimOrdinal,
+    rewardDismissedOrdinal:
+        rewardDismissedOrdinal ?? this.rewardDismissedOrdinal,
     streak: streak ?? this.streak,
-    lastDailyCompletedOrdinal:
-        lastDailyCompletedOrdinal ?? this.lastDailyCompletedOrdinal,
+    lastCompletedOrdinal: lastCompletedOrdinal ?? this.lastCompletedOrdinal,
+    streakReconciledOrdinal:
+        streakReconciledOrdinal ?? this.streakReconciledOrdinal,
     freezesHeld: freezesHeld ?? this.freezesHeld,
     dailyBest: dailyBest ?? this.dailyBest,
     dailyAttempts: dailyAttempts ?? this.dailyAttempts,
@@ -151,7 +163,9 @@ class PlayerProfile {
         lastFirstGameOfDayOrdinal ?? this.lastFirstGameOfDayOrdinal,
     adFree: adFree ?? this.adFree,
     themePackOwned: themePackOwned ?? this.themePackOwned,
-    grantedPurchaseTokens: grantedPurchaseTokens ?? this.grantedPurchaseTokens,
+    pendingPurchaseTokens: pendingPurchaseTokens ?? this.pendingPurchaseTokens,
+    completedPurchaseTokens:
+        completedPurchaseTokens ?? this.completedPurchaseTokens,
     lastFinishedGameId: lastFinishedGameId ?? this.lastFinishedGameId,
     gamesSinceInterstitial:
         gamesSinceInterstitial ?? this.gamesSinceInterstitial,
@@ -178,10 +192,12 @@ class PlayerProfile {
     'unlockedThemes': unlockedThemes.toList()..sort(),
     'selectedTheme': selectedTheme,
     'achievements': achievements.toList()..sort(),
-    'dailyRewardCycleDay': dailyRewardCycleDay,
-    'dailyRewardLastClaimOrdinal': dailyRewardLastClaimOrdinal,
+    'rewardCycleDay': rewardCycleDay,
+    'lastRewardClaimOrdinal': lastRewardClaimOrdinal,
+    'rewardDismissedOrdinal': rewardDismissedOrdinal,
     'streak': streak,
-    'lastDailyCompletedOrdinal': lastDailyCompletedOrdinal,
+    'lastCompletedOrdinal': lastCompletedOrdinal,
+    'streakReconciledOrdinal': streakReconciledOrdinal,
     'freezesHeld': freezesHeld,
     'dailyBest': _ordinalMapToJson(dailyBest),
     'dailyAttempts': _ordinalMapToJson(dailyAttempts),
@@ -189,7 +205,8 @@ class PlayerProfile {
     'lastFirstGameOfDayOrdinal': lastFirstGameOfDayOrdinal,
     'adFree': adFree,
     'themePackOwned': themePackOwned,
-    'grantedPurchaseTokens': grantedPurchaseTokens,
+    'pendingPurchaseTokens': pendingPurchaseTokens.toList()..sort(),
+    'completedPurchaseTokens': completedPurchaseTokens,
     'lastFinishedGameId': lastFinishedGameId,
     'gamesSinceInterstitial': gamesSinceInterstitial,
     'lastInterstitialClosedAt': lastInterstitialClosedAt,
@@ -212,21 +229,21 @@ class PlayerProfile {
     unlockedThemes: _intSet(json['unlockedThemes']),
     selectedTheme: json['selectedTheme'] as int? ?? defaultThemeSlot,
     achievements: _stringList(json['achievements']).toSet(),
-    dailyRewardCycleDay: json['dailyRewardCycleDay'] as int? ?? 0,
-    dailyRewardLastClaimOrdinal:
-        json['dailyRewardLastClaimOrdinal'] as int? ?? never,
+    rewardCycleDay: json['rewardCycleDay'] as int? ?? 1,
+    lastRewardClaimOrdinal: json['lastRewardClaimOrdinal'] as int?,
+    rewardDismissedOrdinal: json['rewardDismissedOrdinal'] as int?,
     streak: json['streak'] as int? ?? 0,
-    lastDailyCompletedOrdinal:
-        json['lastDailyCompletedOrdinal'] as int? ?? never,
+    lastCompletedOrdinal: json['lastCompletedOrdinal'] as int?,
+    streakReconciledOrdinal: json['streakReconciledOrdinal'] as int?,
     freezesHeld: json['freezesHeld'] as int? ?? 0,
     dailyBest: _ordinalMapFromJson(json['dailyBest']),
     dailyAttempts: _ordinalMapFromJson(json['dailyAttempts']),
-    dailySecondAttemptUsed: json['dailySecondAttemptUsed'] as int? ?? never,
-    lastFirstGameOfDayOrdinal:
-        json['lastFirstGameOfDayOrdinal'] as int? ?? never,
+    dailySecondAttemptUsed: json['dailySecondAttemptUsed'] as int?,
+    lastFirstGameOfDayOrdinal: json['lastFirstGameOfDayOrdinal'] as int?,
     adFree: json['adFree'] as bool? ?? false,
     themePackOwned: json['themePackOwned'] as bool? ?? false,
-    grantedPurchaseTokens: _stringList(json['grantedPurchaseTokens']),
+    pendingPurchaseTokens: _stringList(json['pendingPurchaseTokens']).toSet(),
+    completedPurchaseTokens: _stringList(json['completedPurchaseTokens']),
     lastFinishedGameId: json['lastFinishedGameId'] as String?,
     gamesSinceInterstitial: json['gamesSinceInterstitial'] as int? ?? 0,
     lastInterstitialClosedAt: json['lastInterstitialClosedAt'] as int? ?? 0,
@@ -267,10 +284,12 @@ class PlayerProfile {
     unlockedThemes,
     selectedTheme,
     achievements,
-    dailyRewardCycleDay,
-    dailyRewardLastClaimOrdinal,
+    rewardCycleDay,
+    lastRewardClaimOrdinal,
+    rewardDismissedOrdinal,
     streak,
-    lastDailyCompletedOrdinal,
+    lastCompletedOrdinal,
+    streakReconciledOrdinal,
     freezesHeld,
     dailyBest,
     dailyAttempts,
@@ -278,7 +297,8 @@ class PlayerProfile {
     lastFirstGameOfDayOrdinal,
     adFree,
     themePackOwned,
-    grantedPurchaseTokens,
+    pendingPurchaseTokens,
+    completedPurchaseTokens,
     lastFinishedGameId,
     gamesSinceInterstitial,
     lastInterstitialClosedAt,

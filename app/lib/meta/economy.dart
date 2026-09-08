@@ -54,7 +54,7 @@ class Economy {
   static const int clockRollbackResetMs = 24 * 60 * 60 * 1000;
 
   // 8.3 purchases
-  static const int grantedPurchaseTokensCap = 200;
+  static const int completedTokensCap = 200;
 
   // 10 reminder
   static const int reminderHourLocal = 19;

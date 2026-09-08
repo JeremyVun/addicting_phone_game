@@ -6,29 +6,32 @@ import 'player_profile.dart';
 class DailyRewards {
   const DailyRewards._();
 
-  static int nextCycleDay(PlayerProfile profile, DateTime now) {
+  static bool claimable(PlayerProfile profile, DateTime now) {
     final today = Calendar.dayOrdinal(now);
-    final consecutive = profile.dailyRewardLastClaimOrdinal == today - 1;
-    if (!consecutive) return 1;
-    return profile.dailyRewardCycleDay % Economy.dailyRewardCycleLength + 1;
+    return today > Calendar.dayOrdinal(profile.createdAt) &&
+        today != profile.lastRewardClaimOrdinal &&
+        today != profile.rewardDismissedOrdinal;
   }
+
+  static int nextCycleDay(PlayerProfile profile, DateTime now) =>
+      profile.lastRewardClaimOrdinal == Calendar.dayOrdinal(now) - 1
+      ? profile.rewardCycleDay
+      : 1;
 
   static int nextReward(PlayerProfile profile, DateTime now) =>
       Economy.dailyRewardForCycleDay(nextCycleDay(profile, now));
 
-  static bool claimable(PlayerProfile profile, DateTime now) {
-    final today = Calendar.dayOrdinal(now);
-    if (today == Calendar.dayOrdinal(profile.createdAt)) return false;
-    return profile.dailyRewardLastClaimOrdinal != today;
-  }
-
   static PlayerProfile claim(PlayerProfile profile, DateTime now) {
     if (!claimable(profile, now)) return profile;
+    final today = Calendar.dayOrdinal(now);
     final cycleDay = nextCycleDay(profile, now);
     return profile.copyWith(
       coins: profile.coins + Economy.dailyRewardForCycleDay(cycleDay),
-      dailyRewardCycleDay: cycleDay,
-      dailyRewardLastClaimOrdinal: Calendar.dayOrdinal(now),
+      rewardCycleDay: cycleDay % Economy.dailyRewardCycleLength + 1,
+      lastRewardClaimOrdinal: today,
     );
   }
+
+  static PlayerProfile dismiss(PlayerProfile profile, DateTime now) =>
+      profile.copyWith(rewardDismissedOrdinal: Calendar.dayOrdinal(now));
 }

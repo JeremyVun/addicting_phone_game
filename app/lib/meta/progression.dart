@@ -16,11 +16,14 @@ class LastGameResult {
     required this.gameId,
     required this.mode,
     required this.score,
-    required this.coins,
+    required this.baseCoins,
+    required this.bonusCoins,
     required this.xp,
     List<int> levelUps = const [],
     List<String> newAchievements = const [],
     required this.streakAfter,
+    required this.elapsedMs,
+    this.dayOrdinal,
     this.doubled = false,
   }) : levelUps = List.unmodifiable(levelUps),
        newAchievements = List.unmodifiable(newAchievements);
@@ -32,22 +35,34 @@ class LastGameResult {
   final int score;
 
   /// The game's own coins (7.1), which is exactly what Double coins adds again.
-  final int coins;
+  final int baseCoins;
+
+  /// First game of the day, level-up and achievement coins from this finish.
+  final int bonusCoins;
   final int xp;
   final List<int> levelUps;
   final List<String> newAchievements;
   final int streakAfter;
+  final int elapsedMs;
+
+  /// Set for daily games only (3).
+  final int? dayOrdinal;
   final bool doubled;
+
+  int get totalCoins => baseCoins + bonusCoins;
 
   LastGameResult copyWith({bool? doubled}) => LastGameResult(
     gameId: gameId,
     mode: mode,
     score: score,
-    coins: coins,
+    baseCoins: baseCoins,
+    bonusCoins: bonusCoins,
     xp: xp,
     levelUps: levelUps,
     newAchievements: newAchievements,
     streakAfter: streakAfter,
+    elapsedMs: elapsedMs,
+    dayOrdinal: dayOrdinal,
     doubled: doubled ?? this.doubled,
   );
 
@@ -56,11 +71,14 @@ class LastGameResult {
     'gameId': gameId,
     'mode': mode.name,
     'score': score,
-    'coins': coins,
+    'baseCoins': baseCoins,
+    'bonusCoins': bonusCoins,
     'xp': xp,
     'levelUps': levelUps,
     'newAchievements': newAchievements,
     'streakAfter': streakAfter,
+    'elapsedMs': elapsedMs,
+    'dayOrdinal': dayOrdinal,
     'doubled': doubled,
   };
 
@@ -68,13 +86,16 @@ class LastGameResult {
     gameId: json['gameId'] as String,
     mode: GameMode.values.byName(json['mode'] as String),
     score: json['score'] as int,
-    coins: json['coins'] as int,
+    baseCoins: json['baseCoins'] as int,
+    bonusCoins: json['bonusCoins'] as int,
     xp: json['xp'] as int,
     levelUps: [for (final l in json['levelUps'] as List) (l as num).toInt()],
     newAchievements: [
       for (final id in json['newAchievements'] as List) id as String,
     ],
     streakAfter: json['streakAfter'] as int,
+    elapsedMs: json['elapsedMs'] as int,
+    dayOrdinal: json['dayOrdinal'] as int?,
     doubled: json['doubled'] as bool? ?? false,
   );
 
@@ -82,11 +103,14 @@ class LastGameResult {
     gameId,
     mode,
     score,
-    coins,
+    baseCoins,
+    bonusCoins,
     xp,
     levelUps,
     newAchievements,
     streakAfter,
+    elapsedMs,
+    dayOrdinal,
     doubled,
   ];
 
@@ -98,7 +122,8 @@ class LastGameResult {
   int get hashCode => _deepEquals.hash(_props);
 
   @override
-  String toString() => 'LastGameResult($gameId, score $score, coins $coins)';
+  String toString() =>
+      'LastGameResult($gameId, score $score, coins $totalCoins)';
 }
 
 class FinishOutcome {
@@ -143,12 +168,10 @@ class Progression {
     ];
     final levelCoins = levelUps.fold(0, (sum, l) => sum + Levels.levelUpReward(l));
 
+    final firstOfDayCoins = isFirstOfDay ? Economy.firstGameOfDayBonus : 0;
+
     var next = profile.copyWith(
-      coins:
-          profile.coins +
-          gameCoins +
-          levelCoins +
-          (isFirstOfDay ? Economy.firstGameOfDayBonus : 0),
+      coins: profile.coins + gameCoins + levelCoins + firstOfDayCoins,
       xp: newXp,
       gamesCompleted: profile.gamesCompleted + 1,
       lastFirstGameOfDayOrdinal: isFirstOfDay
@@ -156,6 +179,8 @@ class Progression {
           : profile.lastFirstGameOfDayOrdinal,
       lastFinishedGameId: summary.gameId,
     );
+
+    final dailyOrdinal = summary.dayOrdinal ?? todayOrdinal;
 
     if (summary.mode == GameMode.classic) {
       next = next.copyWith(
@@ -168,7 +193,7 @@ class Progression {
                 (summary.score / Economy.skillScoreCap).clamp(0.0, 1.0),
       );
     } else {
-      final ordinal = summary.dayOrdinal ?? todayOrdinal;
+      final ordinal = dailyOrdinal;
       final previousBest = profile.dailyBest[ordinal] ?? 0;
       next = next.copyWith(
         bestDaily: summary.score > profile.bestDaily
@@ -187,8 +212,9 @@ class Progression {
     }
 
     final unlocked = Achievements.check(profile, next, summary);
+    final achievementCoins = Achievements.coinsFor(unlocked);
     next = next.copyWith(
-      coins: next.coins + Achievements.coinsFor(unlocked),
+      coins: next.coins + achievementCoins,
       achievements: {...profile.achievements, ...unlocked},
     );
     next = InterstitialPolicy.afterGameCompleted(next);
@@ -200,11 +226,14 @@ class Progression {
         gameId: summary.gameId,
         mode: summary.mode,
         score: summary.score,
-        coins: gameCoins,
+        baseCoins: gameCoins,
+        bonusCoins: firstOfDayCoins + levelCoins + achievementCoins,
         xp: gainedXp,
         levelUps: levelUps,
         newAchievements: unlocked,
         streakAfter: next.streak,
+        elapsedMs: summary.durationMs,
+        dayOrdinal: summary.isDaily ? dailyOrdinal : null,
       ),
     );
   }
@@ -217,7 +246,7 @@ class Progression {
       return (profile: profile, result: lastResult);
     }
     return (
-      profile: profile.copyWith(coins: profile.coins + lastResult.coins),
+      profile: profile.copyWith(coins: profile.coins + lastResult.baseCoins),
       result: lastResult.copyWith(doubled: true),
     );
   }

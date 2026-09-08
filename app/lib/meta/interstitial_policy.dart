@@ -34,11 +34,10 @@ class InterstitialPolicy {
         );
   }
 
-  static bool elapsedAtLeast(int storedMs, int nowMs, int thresholdMs) {
-    if (storedMs == 0) return true;
-    final delta = nowMs - storedMs;
-    return delta >= 0 && delta >= thresholdMs;
-  }
+  /// A stored 0 means never, and a clock moved back gives a negative
+  /// difference; both fall out of the subtraction.
+  static bool elapsedAtLeast(int storedMs, int nowMs, int thresholdMs) =>
+      nowMs - storedMs >= thresholdMs;
 
   /// A stored stamp more than 24 h in the future can only be a clock move, and
   /// would otherwise block interstitials forever.

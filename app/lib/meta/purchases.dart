@@ -2,13 +2,16 @@ import 'economy.dart';
 import 'player_profile.dart';
 import 'themes.dart';
 
-/// Design 8.3 step 2: the pure grant, idempotent on the Play purchase token
-/// (`verificationData.serverVerificationData`), never on `purchaseID`.
+/// Design 8.3 step 2 and 3, as pure state. The idempotency key is the Play
+/// purchase token (`verificationData.serverVerificationData`), never
+/// `purchaseID`. A token is pending from the grant until the plugin confirms
+/// the consume or acknowledge, so a crash in between cannot grant twice.
 class Purchases {
   const Purchases._();
 
   static bool alreadyGranted(PlayerProfile profile, String purchaseToken) =>
-      profile.grantedPurchaseTokens.contains(purchaseToken);
+      profile.pendingPurchaseTokens.contains(purchaseToken) ||
+      profile.completedPurchaseTokens.contains(purchaseToken);
 
   /// An empty token cannot identify a purchase, so it grants nothing.
   static PlayerProfile grant(
@@ -22,7 +25,6 @@ class Purchases {
         alreadyGranted(profile, purchaseToken)) {
       return profile;
     }
-    final granted = [...profile.grantedPurchaseTokens, purchaseToken];
     return profile.copyWith(
       coins: profile.coins + product.coins,
       adFree: profile.adFree || product.grantsAdFree,
@@ -30,9 +32,25 @@ class Purchases {
       unlockedThemes: product.grantsThemePack
           ? {for (final theme in Themes.all) theme.slot}
           : profile.unlockedThemes,
-      grantedPurchaseTokens: granted.length > Economy.grantedPurchaseTokensCap
-          ? granted.sublist(granted.length - Economy.grantedPurchaseTokensCap)
-          : granted,
+      pendingPurchaseTokens: {...profile.pendingPurchaseTokens, purchaseToken},
+    );
+  }
+
+  static PlayerProfile markPurchaseCompleted(
+    PlayerProfile profile,
+    String purchaseToken,
+  ) {
+    if (purchaseToken.isEmpty ||
+        profile.completedPurchaseTokens.contains(purchaseToken)) {
+      return profile;
+    }
+    final completed = [...profile.completedPurchaseTokens, purchaseToken];
+    return profile.copyWith(
+      pendingPurchaseTokens: {...profile.pendingPurchaseTokens}
+        ..remove(purchaseToken),
+      completedPurchaseTokens: completed.length > Economy.completedTokensCap
+          ? completed.sublist(completed.length - Economy.completedTokensCap)
+          : completed,
     );
   }
 }
