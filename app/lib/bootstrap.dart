@@ -4,6 +4,8 @@ import 'services/clock.dart';
 import 'services/notifications.dart';
 import 'services/purchases.dart';
 import 'services/storage.dart';
+import 'services/wiring_monetisation.dart';
+import 'services/wiring_notifications.dart';
 
 /// Audio and haptics are deliberately absent: the play screen owns those two
 /// interfaces and integration adds them here (see docs/contracts/app-shell.md).
@@ -28,8 +30,8 @@ class AppServices {
 Future<AppServices> bootstrap() async => AppServices(
   storage: SharedPreferencesStorage(),
   clock: const SystemClock(),
-  ads: FakeAdsService(),
-  purchases: FakePurchaseService(),
-  analytics: const NoopAnalytics(),
-  notifications: const NoopNotifications(),
+  ads: buildAds(),
+  purchases: buildPurchases(),
+  analytics: buildAnalytics(),
+  notifications: buildNotifications(),
 );

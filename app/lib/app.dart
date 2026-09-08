@@ -16,6 +16,9 @@ import 'ui/play/play_host.dart';
 import 'ui/strings.dart';
 import 'ui/theme/palettes.dart';
 
+part 'app_daily.dart';
+part 'app_shop.dart';
+
 enum ContinuePayment { rewarded, coins, free }
 
 class AppController extends ChangeNotifier
