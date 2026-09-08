@@ -143,8 +143,11 @@ held in an `Expando` keyed by controller: `products`, `loading`, `loaded`,
 `buyProduct` marks the id pending, calls the service, awaits `controller.idle`
 and clears it. **Known gap:** the controller's `purchasePending` sink method is
 an empty body in `app.dart` (phase 2b), so Play's slow-card `pending` state
-cannot reach the shop yet. `ShopState.markPending`/`clearPending` are public for
-exactly that one-line follow-up when `app.dart` is next opened.
+cannot reach the shop yet, and the failure message reaches the player as the
+controller's snackbar (`navigator.showMessage(S.shopPurchaseFailed)`) rather
+than on the shop's own message line, which only `restorePurchases` writes today.
+`ShopState.markPending`, `clearPending` and `showMessage` are public for exactly
+those two one-line follow-ups when `app.dart` is next opened.
 
 ## 6. Wiring (`services/wiring_monetisation.dart`)
 
