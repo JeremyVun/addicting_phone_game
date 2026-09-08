@@ -151,7 +151,7 @@ class AppController extends ChangeNotifier
     mode: core.GameMode.classic,
     seed: Random.secure().nextInt(1 << 32),
     skill: profile.skill,
-    restricted: profile.gamesCompleted == 0,
+    restricted: profile.classicGamesCompleted == 0,
     startedAtMs: services.clock.now().millisecondsSinceEpoch,
   );
 
@@ -195,7 +195,7 @@ class AppController extends ChangeNotifier
   bool get hapticsOn => profile.hapticsEnabled;
 
   @override
-  bool get showFirstGameHints => profile.gamesCompleted == 0;
+  bool get showFirstGameHints => profile.classicGamesCompleted == 0;
 
   @override
   ThemePalette get palette => ThemePalette.all[profile.selectedTheme - 1];
