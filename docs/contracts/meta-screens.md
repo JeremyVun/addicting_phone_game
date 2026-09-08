@@ -144,6 +144,15 @@ it with `AndroidScheduleMode.inexactAllowWhileIdle` — never an exact mode, as
 Play restricts those to alarm-clock apps. `RecordingNotifications` in the same
 file is the test double.
 
+Android silhouettes the small icon, so `@mipmap/ic_launcher` posts as a plain
+white ring (confirmed on the emulator). A white-on-transparent
+`@drawable/ic_notification` should replace it before release.
+
+**Trap the emulator drive found.** The resume hook cancels the pending
+reminder, so any manually scheduled test reminder dies the moment the app is
+reopened. Schedule, background the app, and do not bring it back before the
+alarm fires.
+
 ## 7. Manifest
 
 Added to `android/app/src/main/AndroidManifest.xml` (the AdMob meta-data is
