@@ -32,6 +32,9 @@ class AppController extends ChangeNotifier
   int _resumedAtMs = 0;
 
   AppData get data => _data;
+
+  /// Completes when every queued mutation has been written.
+  Future<void> get idle => _queue;
   PlayerProfile get profile => _data.profile;
   core.GameState? get currentGame => _data.savedGame;
   LastGameResult? get lastResult => _data.lastResult;

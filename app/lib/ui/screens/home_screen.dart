@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../app.dart';
@@ -53,15 +55,22 @@ class HomeScreen extends StatelessWidget {
                   letterSpacing: 19 * 0.42,
                 ),
               ),
-              const SizedBox(height: 34),
-              Center(
-                child: SizedBox(
-                  width: 214,
-                  height: 214,
-                  child: CustomPaint(painter: _MotifPainter(palette)),
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final side = math.min(
+                      math.min(constraints.maxWidth, constraints.maxHeight),
+                      240.0,
+                    );
+                    return Center(
+                      child: SizedBox.square(
+                        dimension: side,
+                        child: CustomPaint(painter: _MotifPainter(palette)),
+                      ),
+                    );
+                  },
                 ),
               ),
-              const Spacer(),
               PrimaryButton(
                 label: S.homePlay,
                 height: 64,
