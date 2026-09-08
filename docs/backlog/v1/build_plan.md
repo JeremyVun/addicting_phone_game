@@ -63,8 +63,10 @@ Done marker: `- [x] phase 2a` with the exemplar path.
 Base: phase 1 branch. Owns: `app/lib/ui/**` except shop, themes, settings,
 achievements screens; `app/lib/app.dart`, `app/lib/main.dart`,
 `app/lib/bootstrap.dart` (created here with fakes, owned by phase 4 after),
-`app/lib/services/audio.dart`, `haptics.dart`, `storage.dart` (the single
-`AppData` envelope of design section 4), `clock.dart`;
+`app/lib/services/ads.dart`, `purchases.dart`, `analytics.dart` (created
+here as interfaces + sinks + fakes per design section 11, owned by phase 4
+after), `app/lib/services/audio.dart`, `haptics.dart`, `storage.dart` (the
+single `AppData` envelope of design section 4), `clock.dart`;
 `app/test/ui/**`; `tools/emu.sh`; `tools/sfx/gen_sfx.py` and the generated
 `app/assets/sfx/*.wav`; `docs/contracts/visual.md`.
 

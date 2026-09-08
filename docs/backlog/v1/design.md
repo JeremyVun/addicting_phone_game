@@ -124,8 +124,9 @@ a saved daily from a previous date is discarded on launch and does not count.
 All randomness in `core` comes from one PCG32-style generator (`Rng`)
 seeded per game. `GameState` (grid, current set with which slots are used,
 score, comboCount, missCount, setsGenerated, continuesUsed, rerollsUsed,
-mode, seed, rng state, status `playing | over`, dayOrdinal for daily,
-startedAt, elapsed) serialises to JSON and back with
+mode, seed, rng state, status `playing | over`, dayOrdinal for daily, the
+director configuration snapshot `skill` and `restricted` (section 5.5,
+fixed for the life of the game), startedAt, elapsed) serialises to JSON and back with
 no loss; `serialize(deserialize(x)) == x` is a test.
 
 All persistent app state lives in one JSON envelope, `AppData {v, profile,
@@ -207,11 +208,13 @@ an unfit set is possible by design; the mercy step and the 30 retries make
 it rare.
 
 ### 5.5 First game ever
-While `profile.gamesCompleted == 0` and the current game's
-`setsGenerated < 3`, the catalogue is restricted to {dot, i2, i3, o2, l3,
-l4, t4} and `p = 0`. Nothing else is persisted for onboarding: an
-abandoned first game resumes under the same rule, and the rule ends for
-good once one game has been completed. No modal tutorial. A single
+A classic game started while `profile.gamesCompleted == 0` is created
+with `restricted = true`. In a restricted game, while `setsGenerated < 3`
+the catalogue is limited to {dot, i2, i3, o2, l3, l4, t4} and `p = 0`.
+Daily games are never restricted and always use `skill = 0.5`, so the
+daily sequence is identical for every player. Nothing else is persisted
+for onboarding: an abandoned first game resumes under the same rule, and
+the rule ends for good once one game has been completed. No modal tutorial. A single
 hint line under the tray ("Drag a block onto the grid") shows until the
 first placement, and a second ("Fill a row or column to clear it") shows
 until the first clear. Both lines are final Codex copy (2026-09-08).
@@ -262,11 +265,19 @@ shown. The game over sheet then has two states:
    available. `AppController.finishGame()` runs once: it computes score →
    best, coins (7.1), XP and level (7.2), achievements (7.7), daily
    completion (3), writes the profile and deletes the saved game in one
-   awaited storage write, and stores a `LastGameResult {score, coins,
-   xp, levelUps, mode, doubled: false}`. The sheet then shows the result,
-   Double coins (rewarded, only while `doubled == false`; on reward it adds
-   `coins` again, sets `doubled = true`, and persists), Play again and
-   Home. The first-game-of-day +25 is added in `finishGame()` and is not
+   awaited storage write, and stores a `LastGameResult {gameId, mode,
+   score, baseCoins, bonusCoins, totalCoins, xp, levelUps,
+   newAchievements, streakAfter, doubled: false}` where `baseCoins` is the
+   7.1 per-game amount, `bonusCoins` everything else awarded at this
+   finish (first-game-of-day, level-ups, achievements) and `totalCoins`
+   their sum. The sheet then shows the result, Double coins (rewarded,
+   only while `doubled == false`; on reward it adds `baseCoins` again,
+   sets `doubled = true`, and persists), Play again and Home.
+
+   `lastResult` is pending until dismissed: it stays in the envelope, the
+   app reopens the matching result sheet on launch if it is present, and
+   it is cleared in the same mutation that handles Play again, Home, or
+   the start of a second daily attempt. The first-game-of-day +25 is added in `finishGame()` and is not
    doubled.
 
    In daily mode the final state is the **Daily result** sheet instead:
@@ -330,8 +341,14 @@ day; claiming is a button, never automatic.
 
 ### 7.5 Streak and streak freeze
 The daily streak is the number of consecutive local days with a completed
-daily attempt. A missed day resets it to 0 unless a streak freeze is held,
-in which case one freeze is consumed and the streak is kept. Freezes cost
+daily attempt. On launch and before recording a completion, the app
+reconciles: `missed = todayOrdinal - lastCompletedOrdinal - 1` (0 when the
+player completed yesterday or today). If `missed == 0` nothing changes.
+If `0 < missed <= freezesHeld`, `missed` freezes are consumed and the
+streak is kept. If `missed > freezesHeld`, the streak resets to 0 and no
+freeze is consumed. Reconciliation runs at most once per missed gap:
+after it, `lastCompletedOrdinal` is set to `todayOrdinal - 1` when the
+streak was kept, so the same gap is never charged twice. Freezes cost
 200 coins, at most 2 held. The home screen shows the streak and whether a
 freeze is held; tapping the streak chip opens the **Streak sheet**: the
 current streak, freezes held (0–2), and a "Buy a freeze" button showing
@@ -447,8 +464,11 @@ Purchase protocol (`PurchaseService`):
    replays at the next launch as a `purchased` update whose id is already
    granted; step 2 skips the grant and step 3 finishes the transaction.
 4. `pending` shows the shop item in a pending state; `error` and `canceled`
-   dismiss it with a short message. On launch `restorePurchases()` runs
-   after the listener is attached.
+   dismiss it with a short message. Independently of status, after every
+   non-pending update whose `pendingCompletePurchase` is true,
+   `completePurchase` is called (this is the plugin's own contract; an
+   unacknowledged purchase is refunded by Play within three days). On
+   launch `restorePurchases()` runs after the listener is attached.
 
 ### 8.4 Consent
 On launch the app requests consent info (UMP). If a form is required it is
@@ -576,11 +596,18 @@ run in plain `dart test` and in the simulator.
 
 Service wiring lives in `app/lib/bootstrap.dart`: `Future<AppServices>
 bootstrap()` builds every service (storage, clock, audio, haptics, ads,
-purchases, analytics, notifications) and `main.dart` only awaits it and
-hands the result to `AppController`. Phase 2b creates the file with fakes
-or no-ops for ads, purchases, analytics and notifications; phase 4 owns it
-from then on and replaces those with the real implementations, including
-the process-lifetime purchase listener, without editing `main.dart` or
+purchases, analytics, notifications) and `main.dart` only awaits it,
+constructs `AppController(services)`, awaits `controller.start()`, and
+runs the app. `start()` loads the envelope, reconciles the profile, then
+calls `services.purchases.start(this)` and `services.ads.start(this)`:
+the services receive the controller through narrow sink interfaces
+declared beside them (`PurchaseSink` with `applyPurchase(productId,
+token)` and `markPending`/`showMessage`; `AdSink` with the policy
+transitions of 8.2), and every callback they raise lands in the
+controller's mutation queue. The service interfaces, their sinks and the
+fakes are created in phase 2b so the UI compiles; phase 4 owns those
+files from then on and adds the real implementations, including the
+process-lifetime purchase listener, without editing `main.dart` or
 `app.dart`.
 
 Contracts written as the build lands: `docs/contracts/core-engine.md`,
