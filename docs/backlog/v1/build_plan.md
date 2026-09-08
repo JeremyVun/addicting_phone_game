@@ -62,7 +62,9 @@ Done marker: `- [x] phase 2a` with the exemplar path.
 
 Base: phase 1 branch. Owns: `app/lib/ui/**` except shop, themes, settings,
 achievements screens; `app/lib/app.dart`, `app/lib/main.dart`,
-`app/lib/services/audio.dart`, `haptics.dart`, `storage.dart`, `clock.dart`;
+`app/lib/bootstrap.dart` (created here with fakes, owned by phase 4 after),
+`app/lib/services/audio.dart`, `haptics.dart`, `storage.dart` (the single
+`AppData` envelope of design section 4), `clock.dart`;
 `app/test/ui/**`; `tools/emu.sh`; `tools/sfx/gen_sfx.py` and the generated
 `app/assets/sfx/*.wav`; `docs/contracts/visual.md`.
 
@@ -111,9 +113,10 @@ Done marker: `- [x] phase 3`.
 
 ## Phase 4 — monetisation and consent
 
-Base: phase 3 branch. Owns: `app/lib/services/ads.dart`, `purchases.dart`,
-`analytics.dart`, `monetisation.dart` (the `MonetisationHooks`
-implementation and the interstitial policy), `app/lib/ui/screens/shop_screen.dart`,
+Base: phase 3 branch. Owns: `app/lib/bootstrap.dart`,
+`app/lib/services/ads.dart`, `purchases.dart`, `analytics.dart`,
+`monetisation.dart` (the `MonetisationHooks` implementation and the
+interstitial policy), `app/lib/ui/screens/shop_screen.dart`,
 `settings_screen.dart`, `app/test/services/**`, Android manifest/gradle
 changes the plugins need, `docs/contracts/monetisation.md`,
 `docs/contracts/analytics.md`.

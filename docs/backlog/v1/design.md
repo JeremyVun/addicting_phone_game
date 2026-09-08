@@ -126,14 +126,20 @@ seeded per game. `GameState` (grid, current set with which slots are used,
 score, comboCount, missCount, setsGenerated, continuesUsed, rerollsUsed,
 mode, seed, rng state, status `playing | over`, dayOrdinal for daily,
 startedAt, elapsed) serialises to JSON and back with
-no loss; `serialize(deserialize(x)) == x` is a test. The app writes the
-saved game after every reducer mutation (place, continue, reroll, game
-over) and the profile after every profile mutation (coins, purchases,
-rewards, settings), awaiting the write before the UI acknowledges the
-change or a payment is consumed; backgrounding writes both again. On launch
-it resumes a saved game whose day ordinal matches today (daily) or any
-(classic). A resumed game cannot be replayed to a different outcome: the
-rng state is part of the save.
+no loss; `serialize(deserialize(x)) == x` is a test.
+
+All persistent app state lives in one JSON envelope, `AppData {v, profile,
+savedGame?, lastResult?}`, stored under a single `shared_preferences`
+string key and always written whole, so a write is all-or-nothing and no
+two keys can disagree after a crash. The app writes the envelope after
+every reducer mutation (place, continue, reroll, game over) and every
+profile mutation (coins, purchases, rewards, settings), awaiting the write
+before the UI acknowledges the change or a payment is consumed;
+backgrounding writes it again. Every game carries an `id` (seed and
+startedAtMs); `finishGame()` is a no-op when `profile.lastFinishedGameId`
+already equals the game's id. On launch the app resumes a saved game whose
+day ordinal matches today (daily) or any (classic). A resumed game cannot
+be replayed to a different outcome: the rng state is part of the save.
 
 ## 5. The director (piece generation)
 
@@ -154,6 +160,12 @@ p            = clamp(base + skillAdj, 0, 1)
 `skill` is the persisted per-player estimate (section 7.6). A game of 40
 sets is 120 placements, around 5 minutes at a relaxed pace; base pressure
 reaches its ceiling there.
+
+`setsGenerated` is the number of normal sets already returned. It starts
+at 0, every generation rule (pressure, the 5.5 restriction) is evaluated
+with its current value, and it increments after a normal set is returned.
+So the first three sets of a first game (values 0, 1, 2) are restricted
+and the fourth (value 3) is not. Rerolls and continues never change it.
 
 ### 5.3 Sampling a piece
 Each piece's weight is `familyWeight / rotations * (cells / 4) ^ (2p - 1)`.
@@ -246,6 +258,16 @@ shown. The game over sheet then has two states:
    `coins` again, sets `doubled = true`, and persists), Play again and
    Home. The first-game-of-day +25 is added in `finishGame()` and is not
    doubled.
+
+   In daily mode the final state is the **Daily result** sheet instead:
+   today's score and today's best (they differ only on a second attempt),
+   the streak with today's increment, coins earned, Double coins (as
+   above), Share (a text card, section 9.1), Second attempt (rewarded,
+   shown only while `profile.dailySecondAttemptUsed != dayOrdinal`; on
+   reward the flag is persisted first and then a new daily game starts
+   immediately), and Home. There is no Play again in daily. `finishGame()`
+   records `profile.dailyBest[dayOrdinal]`, `dailyAttempts[dayOrdinal]`
+   and the streak update (7.5) in the same envelope write.
 
 ## 7. Meta progression
 
@@ -387,14 +409,15 @@ Purchase protocol (`PurchaseService`):
    any screen, and lives for the process.
 2. Coin packs are bought with `autoConsume: false`. For every update in
    state `purchased` or `restored`: if `purchaseID` is already in
-   `profile.grantedPurchases` (a capped list of the last 200 ids), skip to
-   step 4. Otherwise grant (coins added, or the non-consumable flag set),
-   append the id, and await the profile write.
-3. Only after that write: consumables are consumed
+   `profile.grantedPurchases` (a capped list of the last 200 ids), skip the
+   grant and go straight to step 3. Otherwise grant (coins added, or the
+   non-consumable flag set), append the id, and await the state write.
+3. Then, whether or not the grant was new: consumables are consumed
    (`InAppPurchaseAndroidPlatformAddition.consumePurchase`) and
-   non-consumables acknowledged (`completePurchase`). A crash between grant
-   and consume replays at the next launch as a `purchased` update whose id
-   is already granted, which step 2 skips and step 3 finishes.
+   non-consumables acknowledged (`completePurchase`, when
+   `pendingCompletePurchase` is true). A crash between grant and consume
+   replays at the next launch as a `purchased` update whose id is already
+   granted; step 2 skips the grant and step 3 finishes the transaction.
 4. `pending` shows the shop item in a pending state; `error` and `canceled`
    dismiss it with a short message. On launch `restorePurchases()` runs
    after the listener is attached.
@@ -425,8 +448,9 @@ real ads service uses Google's test unit ids.
   Continue (rewarded/coins/free), End game. Final: score, best (with "New
   best" state), coins earned, level progress, Double coins (rewarded), Play
   again, Home.
-- **Daily result**: today's score, streak, share button (text card), second
-  attempt (rewarded) if unused.
+- **Daily result**: the daily final state of 6.1 (score, best, streak,
+  coins, Double coins, Share, Second attempt, Home). The share card is
+  plain text: the game name, the day number, the score and the streak.
 - **Shop**: Remove Ads, three coin packs, theme pack; Restore purchases.
 - **Themes**: grid of twelve swatches with lock state and unlock condition.
 - **Settings**: sound, haptics, reminder notification, privacy options,
@@ -521,6 +545,15 @@ tools/             check.sh, emu.sh (install/launch/screenshot/tap), release.sh
 State management is one `AppController` exposed with `ListenableBuilder`;
 no additional state library. `core` and `meta` never import Flutter, so they
 run in plain `dart test` and in the simulator.
+
+Service wiring lives in `app/lib/bootstrap.dart`: `Future<AppServices>
+bootstrap()` builds every service (storage, clock, audio, haptics, ads,
+purchases, analytics, notifications) and `main.dart` only awaits it and
+hands the result to `AppController`. Phase 2b creates the file with fakes
+or no-ops for ads, purchases, analytics and notifications; phase 4 owns it
+from then on and replaces those with the real implementations, including
+the process-lifetime purchase listener, without editing `main.dart` or
+`app.dart`.
 
 Contracts written as the build lands: `docs/contracts/core-engine.md`,
 `economy.md`, `monetisation.md`, `analytics.md`, `visual.md`.
