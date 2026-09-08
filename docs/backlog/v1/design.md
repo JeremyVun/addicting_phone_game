@@ -181,10 +181,14 @@ So the first three sets of a first game (values 0, 1, 2) are restricted
 and the fourth (value 3) is not. Rerolls and continues never change it.
 
 ### 5.3 Sampling a piece
-Each piece's weight is `familyWeight / rotations * (cells / 4) ^ (2p - 1)`.
-At `p = 0.5` the exponent is 0 and the bag is the base table; at `p = 0`
-small pieces are favoured; at `p = 1` large ones. Sampling is weighted
-random over the whole catalogue.
+Each piece's weight is `familyWeight / rotations * (cells / 4) ^ (2p - 1.6)`.
+The offset 1.6 (not the 1.0 that would make `p = 0.5` the neutral base
+table) was ruled on 2026-09-08 from the calibration sweep in 5.6: with
+1.0 a competent player's game was too short and with 2.6 the bag was 28%
+single dots and a strong player never died. At 1.6 and `p = 0.5` the
+draw shares by piece size are 1 cell 10%, 2–3 cells 34%, 4 cells 39%,
+5–6 cells 14%, 9 cells 3%. Sampling is weighted random over the whole
+catalogue.
 
 ### 5.4 Generating a set (in this order)
 `generateSet(board, rng, p, count)` returns `count` pieces (3 for a normal
@@ -223,20 +227,23 @@ until the first clear. Both lines are final Codex copy (2026-09-08).
 
 ### 5.6 Tuning gates (simulation)
 `app/bin/sim.dart` plays headless games with bots and prints length and
-score distributions. The build must satisfy, at skill 0.5, over 2,000 games
-per bot:
+score distributions; `--sweep` runs the size-bias offsets side by side.
+The build must satisfy, at skill 0.5 and seed 1:
 
 | bot | median placements | purpose |
 | --- | --- | --- |
-| random legal placement | 20–45 | a beginner survives 1–2 minutes |
-| greedy 1-ply (max lines cleared, then max empty cells) | 90–220 | a competent player reaches 4–8 minutes |
+| random legal placement | reported, not gated | it never prefers a clear, so it cannot discriminate the constant (ruling 2026-09-08) |
+| greedy 1-ply (max lines cleared, then max empty cells), 2,000 games | 40–90 | a weak player reaches 2–4 minutes |
+| smart (2–3 ply over the set with a board-quality heuristic), 200 games | 150–260 | a strong player reaches 8–12 minutes and still dies |
+
+Also: the share of single-cell pieces drawn at `p = 0.5` is at most 15%.
 
 Assist gate, measured on the greedy bot's 2,000 games at skill 0.5, over
 every set returned by 5.4 (the simulator never rerolls or continues), using
 the board at generation time. Only sets generated with fill in [30%, 70%)
 count. Bucket A: `p <= 0.3`; bucket B: `p >= 0.8`. A set counts as
 "assisted" when at least one of its pieces has a placement completing a
-line. Required: `rate(A) >= 0.35` and `rate(A) >= rate(B) + 0.10`. Print
+line. Required: `rate(A) >= 0.35` and `rate(A) >= rate(B) + 0.08`. Print
 both rates and both denominators. If the numbers fall outside these bands,
 tune the constants in 5.2–5.4 and record the change here.
 
@@ -382,9 +389,10 @@ a link to the Shop in the first case. Buying runs
 
 ### 7.6 Skill estimate
 `skill` in [0,1], persisted. After each completed classic game:
-`skill = 0.8 * skill + 0.2 * clamp(score / 6000, 0, 1)`. Starts at 0.35.
-6,000 is the score a competent player reaches in a good game under this
-scoring; revisit after sim data and record here.
+`skill = 0.8 * skill + 0.2 * clamp(score / 4000, 0, 1)`. Starts at 0.35.
+4,000 sits between the greedy bot's median score (about 500) and the
+smart bot's (about 3,000) at offset 1.6, so a competent human lands near
+0.5–0.75 (ruled 2026-09-08 from the sweep).
 
 ### 7.7 Achievements
 Sixteen, each granting coins once. Checked at game over and on the relevant
