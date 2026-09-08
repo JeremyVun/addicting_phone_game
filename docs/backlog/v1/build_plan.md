@@ -199,7 +199,7 @@ probes as its acceptance suite. Done marker: `- [x] phase 7`.
 ## Done markers
 
 - [x] phase 0
-- [ ] phase 1
+- [x] phase 1 — 66 tests; offset 1.6; greedy 32/56/89 placements (score 222/502/916), smart 119/215/400 (1325/2967/5677), random 11/17/26 ungated; dots 10.0% at p=0.5; assist rate(A) 0.789 vs rate(B) 0.775
 - [x] phase 2a — exemplar `assets/exemplar/play-mid-drag.png` (+4 frames), verdict in `docs/styles.md`
 - [ ] phase 2b
 - [ ] phase 3a
