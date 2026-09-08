@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 import '../../app.dart';
 import '../strings.dart';
-import '../debug_drive.dart';
 import '../theme/palettes.dart';
 import '../theme/typography.dart';
 import '../widgets/buttons.dart';
@@ -114,9 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               const SizedBox(height: 30),
-              GestureDetector(
-                onLongPress: () => showDebugDrive(context, controller),
-                child: Text(
+              Text(
                 S.appName.toUpperCase(),
                 style: manrope(
                   size: 19,
@@ -124,7 +121,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: palette.ink,
                   letterSpacing: 19 * 0.42,
                 ),
-              ),
               ),
               const SizedBox(height: 30),
               Expanded(
