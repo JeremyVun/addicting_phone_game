@@ -381,9 +381,12 @@ A streak of 0 is never defended: freezes are consumed only while `streak >
 0`. In both of the last two cases `streakReconciledOrdinal = today - 1`,
 so a gap is charged exactly once and a later launch on the same day is a
 no-op. A device clock moved backwards never destroys a streak (ruled
-2026-09-09): a daily cannot be started for an ordinal below
-`lastCompletedOrdinal`, and a completion whose ordinal is below it
-leaves the streak, the anchor and the reconciliation marker unchanged. Completing today's daily compares against the same anchor
+2026-09-09, amended the same day): a daily for a stale ordinal may still
+be started and played (a traveller crossing the date line westward sees
+yesterday's date legitimately), its best and attempt are recorded under
+that ordinal, but a completion whose ordinal is at or behind the anchor
+`max(lastCompletedOrdinal, streakReconciledOrdinal)` leaves the streak,
+the anchor and the reconciliation marker unchanged. Completing today's daily compares against the same anchor
 (`max(lastCompletedOrdinal, streakReconciledOrdinal)`), sets
 `lastCompletedOrdinal = today` and increments the streak (from 0 after a
 reset). Freezes cost
