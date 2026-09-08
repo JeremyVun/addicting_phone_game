@@ -61,7 +61,7 @@ void main() {
 
     expect(harness.controller.dailyCardState, DailyCardState.done);
     expect(find.text('Today\u2019s score: 3,300'), findsOneWidget);
-    expect(find.text('One more try is available'), findsOneWidget);
+    expect(find.text(S.homeDailySecondAttemptAvailable), findsOneWidget);
   });
 
   testWidgets('an unfinished daily reads as in progress and resumes', (
