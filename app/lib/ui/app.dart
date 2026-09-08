@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../app.dart';
 import 'navigation.dart';
+import 'screens/achievements_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/placeholder_screen.dart';
 import 'screens/play_route.dart';
+import 'screens/themes_screen.dart';
 import 'strings.dart';
 import 'theme/palettes.dart';
 import 'theme/typography.dart';
@@ -18,7 +20,7 @@ class SettleApp extends StatefulWidget {
   State<SettleApp> createState() => _SettleAppState();
 }
 
-class _SettleAppState extends State<SettleApp> {
+class _SettleAppState extends State<SettleApp> with WidgetsBindingObserver {
   final _navigatorKey = GlobalKey<NavigatorState>();
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
 
@@ -30,9 +32,30 @@ class _SettleAppState extends State<SettleApp> {
       _messengerKey,
       widget.controller,
     );
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => widget.controller.resumeFromLaunch(),
     );
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Design 10: the reminder is recomputed on every background and dropped on
+  /// every open, so it never fires at a player who is already here.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.paused:
+        widget.controller.scheduleReminderIfEnabled();
+      case AppLifecycleState.resumed:
+        widget.controller.cancelReminder();
+      case _:
+        break;
+    }
   }
 
   @override
@@ -54,12 +77,11 @@ class _SettleAppState extends State<SettleApp> {
               PlayRoute(host: widget.controller),
           '/shop': (_) =>
               PlaceholderScreen(title: S.shopTitle, palette: palette),
-          '/themes': (_) =>
-              PlaceholderScreen(title: S.themesTitle, palette: palette),
+          '/themes': (_) => ThemesScreen(controller: widget.controller),
           '/settings': (_) =>
               PlaceholderScreen(title: S.settingsTitle, palette: palette),
           '/achievements': (_) =>
-              PlaceholderScreen(title: S.achievementsTitle, palette: palette),
+              AchievementsScreen(controller: widget.controller),
         },
       );
     },

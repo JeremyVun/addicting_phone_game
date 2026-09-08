@@ -38,6 +38,10 @@ class AppController extends ChangeNotifier
   /// under the result sheet and must keep drawing the board it ended on.
   core.GameState? _finishedGame;
 
+  /// Design 10 asks after the second *finished* game, not on a launch that
+  /// happens to find the profile at two.
+  bool _reminderPromptArmed = false;
+
   AppData get data => _data;
 
   /// Completes when every queued mutation has been written.
@@ -306,6 +310,7 @@ class AppController extends ChangeNotifier
       'placements': Buckets.placements(summary.placements),
       'continued': '${summary.continued}',
     });
+    _afterFinish(result);
     return result;
   }
 

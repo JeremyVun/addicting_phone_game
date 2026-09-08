@@ -8,15 +8,78 @@ import '../theme/palettes.dart';
 import '../theme/typography.dart';
 import '../widgets/buttons.dart';
 import '../widgets/coin_chip.dart';
+import '../widgets/format.dart';
 import '../widgets/level_ring.dart';
+import 'daily_result_sheet.dart';
+import 'daily_reward_sheet.dart';
+import 'notification_prompt_sheet.dart';
+import 'streak_sheet.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.controller});
 
   final AppController controller;
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  bool _sheetUp = false;
+
+  AppController get controller => widget.controller;
+
+  /// Design 7.4 and 10: both sheets belong to Home and are offered again on
+  /// every return until the player answers them, so they are not dismissible.
+  void _offerPendingSheets() {
+    if (_sheetUp || !mounted) return;
+    final Widget? sheet = controller.reminderPromptDue
+        ? NotificationPromptSheet(controller: controller)
+        : controller.dailyRewardClaimable
+        ? DailyRewardSheet(controller: controller)
+        : null;
+    if (sheet == null) return;
+    _sheetUp = true;
+    showModalBottomSheet<void>(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      backgroundColor: const Color(0x00000000),
+      builder: (_) => sheet,
+    ).whenComplete(() => _sheetUp = false);
+  }
+
+  void _openDailyResult() {
+    final pending = controller.lastResult;
+    final result =
+        pending != null && pending.dayOrdinal == controller.today ? pending : null;
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0x00000000),
+      builder: (_) => DailyResultSheet(controller: controller, result: result),
+    );
+  }
+
+  void _openStreakSheet() => showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: const Color(0x00000000),
+    builder: (_) => StreakSheet(controller: controller),
+  );
+
+  void _tapDailyCard() {
+    switch (controller.dailyCardState) {
+      case DailyCardState.notPlayed:
+        controller.startDaily();
+      case DailyCardState.inProgress:
+        controller.resumeDaily();
+      case DailyCardState.done:
+        _openDailyResult();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) => _offerPendingSheets());
     final palette = controller.palette;
     final profile = controller.profile;
     return Scaffold(
@@ -80,7 +143,11 @@ class HomeScreen extends StatelessWidget {
                 onPressed: controller.startClassic,
               ),
               const SizedBox(height: 12),
-              _DailyCard(controller: controller),
+              _DailyCard(
+                controller: controller,
+                onTap: _tapDailyCard,
+                onStreakTap: _openStreakSheet,
+              ),
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -118,67 +185,128 @@ class HomeScreen extends StatelessWidget {
 }
 
 class _DailyCard extends StatelessWidget {
-  const _DailyCard({required this.controller});
+  const _DailyCard({
+    required this.controller,
+    required this.onTap,
+    required this.onStreakTap,
+  });
 
   final AppController controller;
+  final VoidCallback onTap;
+  final VoidCallback onStreakTap;
+
+  String get _status => switch (controller.dailyCardState) {
+    DailyCardState.notPlayed => S.homeDailyNotPlayed,
+    DailyCardState.inProgress => S.homeDailyInProgress,
+    DailyCardState.done => S.homeDailyDone(
+      formatCount(controller.dailyBestToday),
+    ),
+  };
 
   @override
   Widget build(BuildContext context) {
     final palette = controller.palette;
-    return Container(
-      height: 78,
-      padding: const EdgeInsets.symmetric(horizontal: 18),
-      decoration: BoxDecoration(
+    return Material(
+      color: const Color(0x00000000),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: palette.hairline),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  S.homeDailyTitle,
-                  style: manrope(size: 18, weight: 800, color: palette.ink),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  S.homeDailyNotPlayed,
-                  style: manrope(size: 12, weight: 600, color: palette.muted),
-                ),
-              ],
-            ),
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 78),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: palette.hairline),
           ),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
+          child: Row(
             children: [
-              Text(
-                '${controller.profile.streak}',
-                style: manrope(
-                  size: 30,
-                  weight: 800,
-                  color: palette.ink,
-                  letterSpacing: -0.9,
-                  height: 1.05,
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      S.homeDailyTitle,
+                      style: manrope(size: 18, weight: 800, color: palette.ink),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      _status,
+                      style: manrope(
+                        size: 12,
+                        weight: 600,
+                        color: palette.muted,
+                      ),
+                    ),
+                    if (controller.secondDailyAttemptOffered) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        S.homeDailySecondAttemptAvailable,
+                        style: manrope(
+                          size: 12,
+                          weight: 700,
+                          color: palette.accent,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-              Text(
-                S.homeStreakLabel.toUpperCase(),
-                style: manrope(
-                  size: 10,
-                  weight: 700,
-                  color: palette.muted,
-                  letterSpacing: 1.4,
+              InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: onStreakTap,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          if (controller.profile.freezesHeld > 0) ...[
+                            Icon(
+                              Icons.ac_unit,
+                              size: 15,
+                              color: palette.accent,
+                            ),
+                            const SizedBox(width: 5),
+                          ],
+                          Text(
+                            '${controller.profile.streak}',
+                            style: manrope(
+                              size: 30,
+                              weight: 800,
+                              color: palette.ink,
+                              letterSpacing: -0.9,
+                              height: 1.05,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        S.homeStreakLabel.toUpperCase(),
+                        style: manrope(
+                          size: 10,
+                          weight: 700,
+                          color: palette.muted,
+                          letterSpacing: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
+              const SizedBox(width: 4),
+              Icon(Icons.play_arrow_rounded, size: 18, color: palette.accent),
             ],
           ),
-          const SizedBox(width: 10),
-          Icon(Icons.play_arrow_rounded, size: 18, color: palette.accent),
-        ],
+        ),
       ),
     );
   }

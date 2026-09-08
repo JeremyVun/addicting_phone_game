@@ -58,6 +58,7 @@ class Economy {
 
   // 10 reminder
   static const int reminderHourLocal = 19;
+  static const int reminderPromptAfterGames = 2;
 }
 
 enum ProductKind { consumable, nonConsumable }
