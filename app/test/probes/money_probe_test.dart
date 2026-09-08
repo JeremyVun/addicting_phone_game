@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:settle/app.dart';
 import 'package:settle/core/game_state.dart' as core;
 import 'package:settle/meta/meta.dart';
-import 'package:settle/services/ads.dart';
 
 import '../app/harness.dart';
 import 'support.dart';
