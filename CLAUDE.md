@@ -35,4 +35,9 @@ tools/emu.sh shot <name>              # screenshot the emulator to /tmp/settle-s
 - Player-facing text only in `app/lib/ui/strings.dart`, drafted by Codex.
 - Ads and purchases only through the `AdsService` / `PurchaseService`
   interfaces; tests and the emulator use the fakes.
-- Never commit `key.properties`, `*.jks`, or real AdMob unit ids.
+- Never commit `key.properties`, `*.jks`, or real AdMob unit ids. The upload key
+  lives in `~/.settle/` (PKCS12); `tools/release.sh` reads it from there.
+- `emulator-5554` is shared by every session; never install over another
+  agent's build (same applicationId). Boot your own AVD on another port for
+  device checks, and build before booting: two emulators plus Gradle
+  overload this machine.

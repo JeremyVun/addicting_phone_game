@@ -206,5 +206,5 @@ probes as its acceptance suite. Done marker: `- [x] phase 7`.
 - [ ] phase 3b
 - [ ] phase 4
 - [ ] phase 5
-- [ ] phase 6
+- [ ] phase 6 — tooling done 2026-09-08 (`tools/release.sh`, signing, R8, icon, splash, `docs/store/checklist.md`); the verification wave remains
 - [ ] phase 7
