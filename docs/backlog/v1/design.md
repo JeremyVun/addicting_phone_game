@@ -365,10 +365,13 @@ lastCompletedOrdinal)` and `missed = today - from - 1`. If `missed <= 0`
 (completed today or yesterday) nothing changes. If `0 < missed <=
 freezesHeld`, `missed` freezes are consumed and the streak is kept. If
 `missed > freezesHeld`, the streak resets to 0 and no freeze is consumed.
-In both of the last two cases `streakReconciledOrdinal = today - 1`, so a
-gap is charged exactly once and a later launch on the same day is a
-no-op. Completing today's daily then sets `lastCompletedOrdinal = today`
-and increments the streak (from 0 after a reset). Freezes cost
+A streak of 0 is never defended: freezes are consumed only while `streak >
+0`. In both of the last two cases `streakReconciledOrdinal = today - 1`,
+so a gap is charged exactly once and a later launch on the same day is a
+no-op. Completing today's daily compares against the same anchor
+(`max(lastCompletedOrdinal, streakReconciledOrdinal)`), sets
+`lastCompletedOrdinal = today` and increments the streak (from 0 after a
+reset). Freezes cost
 200 coins, at most 2 held. The home screen shows the streak and whether a
 freeze is held; tapping the streak chip opens the **Streak sheet**: the
 current streak, freezes held (0–2), and a "Buy a freeze" button showing
