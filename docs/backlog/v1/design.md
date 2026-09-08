@@ -62,10 +62,9 @@ family's rotations:
 | s4 | 4 (S) | 2 | 3 |
 | z4 | 4 (Z) | 2 | 3 |
 
-Total base weight 83. Each piece carries one colour index chosen uniformly
-at generation; a family always maps to the same colour index within one
-theme so the player learns shapes by colour (dot 0, i2/i3 1, i4/i5 2, o2 3,
-o3/r23 4, l3/l4 5, l5 6, t4/s4/z4 7).
+Total base weight 83. Each piece's colour index is fixed by family and
+consumes no randomness, so the player learns shapes by colour: dot 0,
+i2/i3 1, i4/i5 2, o2 3, o3/r23 4, l3/l4 5, l5 6, t4/s4/z4 7.
 
 ### 2.3 Turn structure
 - A **set** is three pieces shown in a tray under the grid. All three must be
@@ -106,8 +105,12 @@ player chases inside a game.
 
 **Classic**: endless, high-score. Director uses the player's skill estimate.
 
-**Daily**: one board per calendar day (local date). Seed = number of days
-since 2026-01-01 in the device's local date. The director runs with skill
+**Daily**: one board per calendar day (local date). Seed = the day
+ordinal. The **day ordinal** of a local date is
+`DateTime.utc(y, m, d).difference(DateTime.utc(2026, 1, 1)).inDays` where
+`y, m, d` come from the device's local `DateTime.now()`; it is DST-proof and
+is the only calendar arithmetic used anywhere (seeds, streaks, reward
+calendar, saved-daily validation, first-game-of-day). The director runs with skill
 fixed at 0.5 and no per-player adaptation, so every player gets the same
 piece sequence for the same placements. One attempt per day; a second
 attempt is available once through the `dailySecondAttempt` rewarded
@@ -121,11 +124,16 @@ a saved daily from a previous date is discarded on launch and does not count.
 All randomness in `core` comes from one PCG32-style generator (`Rng`)
 seeded per game. `GameState` (grid, current set with which slots are used,
 score, comboCount, missCount, setsGenerated, continuesUsed, rerollsUsed,
-mode, seed, rng state, startedAt, elapsed) serialises to JSON and back with
-no loss; `serialize(deserialize(x)) == x` is a test. The app saves after
-every placement and on background; on launch it resumes a saved game of the
-same date (daily) or any date (classic). A resumed game cannot be replayed
-to a different outcome: the rng state is part of the save.
+mode, seed, rng state, status `playing | over`, dayOrdinal for daily,
+startedAt, elapsed) serialises to JSON and back with
+no loss; `serialize(deserialize(x)) == x` is a test. The app writes the
+saved game after every reducer mutation (place, continue, reroll, game
+over) and the profile after every profile mutation (coins, purchases,
+rewards, settings), awaiting the write before the UI acknowledges the
+change or a payment is consumed; backgrounding writes both again. On launch
+it resumes a saved game whose day ordinal matches today (daily) or any
+(classic). A resumed game cannot be replayed to a different outcome: the
+rng state is part of the save.
 
 ## 5. The director (piece generation)
 
@@ -154,7 +162,10 @@ small pieces are favoured; at `p = 1` large ones. Sampling is weighted
 random over the whole catalogue.
 
 ### 5.4 Generating a set (in this order)
-1. Draw three pieces by 5.3.
+`generateSet(board, rng, p, count)` returns `count` pieces (3 for a normal
+set; 1–3 for a reroll, see section 6). Every rule below applies to the
+`count` pieces being generated.
+1. Draw `count` pieces by 5.3.
 2. **Mercy**: if board fill >= 70% and `rng.next() < 0.70 - 0.40 * p`,
    replace the largest piece with a uniformly random piece of at most 3
    cells (dot, i2, i3, l3).
@@ -162,18 +173,23 @@ random over the whole catalogue.
    pieces by 5.3 and take the first that has a placement completing at least
    one line; if one exists, it replaces a random slot.
 4. **Fit guarantee**: if no piece in the set fits the board, discard the set
-   and retry from step 1. After 10 failed tries, retry with `p = 0`. After
-   30 failed tries, keep the last set (the board is effectively dead and game
-   over follows).
+   and retry from step 1. Tries 11–30 run with `p = 0`. After 30 failed
+   tries: if fill < 70%, replace slot 0 with `dot` (which fits any empty
+   cell) and return; otherwise return the last set as drawn (the board is
+   dead and game over follows).
 5. Colour each piece by family (2.2).
 
-Invariant (tested): when fill < 70% a returned set always has a fitting
-piece. Empirically, 30 retries make an unfit set at fill < 70% impossible
-in practice; the test asserts it over 10,000 random boards.
+Invariant (tested over 10,000 random boards at every fill from 0 to 69%):
+when fill < 70% a returned set always has a fitting piece. At fill >= 70%
+an unfit set is possible by design; the mercy step and the 30 retries make
+it rare.
 
 ### 5.5 First game ever
-For the first three sets of a brand-new profile the catalogue is restricted
-to {dot, i2, i3, o2, l3, l4, t4} and `p = 0`. No modal tutorial. A single
+While `profile.gamesCompleted == 0` and the current game's
+`setsGenerated < 3`, the catalogue is restricted to {dot, i2, i3, o2, l3,
+l4, t4} and `p = 0`. Nothing else is persisted for onboarding: an
+abandoned first game resumes under the same rule, and the rule ends for
+good once one game has been completed. No modal tutorial. A single
 hint line under the tray ("Drag a block onto the grid") shows until the
 first placement, and a second ("Fill a row or column to clear it") shows
 until the first clear. Both lines are final Codex copy (2026-09-08).
@@ -188,21 +204,48 @@ per bot:
 | random legal placement | 20–45 | a beginner survives 1–2 minutes |
 | greedy 1-ply (max lines cleared, then max empty cells) | 90–220 | a competent player reaches 4–8 minutes |
 
-Also: fraction of sets that contain a line-completing piece >= 35% when
-`p <= 0.3`, and <= 25% when `p >= 0.8`. If the numbers fall outside these
-bands, tune the constants in 5.2–5.4 and record the change here.
+Assist gate, measured on the greedy bot's 2,000 games at skill 0.5, over
+every set returned by 5.4 (the simulator never rerolls or continues), using
+the board at generation time. Only sets generated with fill in [30%, 70%)
+count. Bucket A: `p <= 0.3`; bucket B: `p >= 0.8`. A set counts as
+"assisted" when at least one of its pieces has a placement completing a
+line. Required: `rate(A) >= 0.35` and `rate(A) >= rate(B) + 0.10`. Print
+both rates and both denominators. If the numbers fall outside these bands,
+tune the constants in 5.2–5.4 and record the change here.
 
 ## 6. Continue and reroll
 
 - **Continue** (`continueGame` placement): offered once per game on the game
-  over sheet. Clears the three rows with the most filled cells (ties:
-  topmost), then generates a fresh set with `p = 0`, and play resumes with
-  the same score and combo. Paid by one rewarded ad, or by 150 coins. Ad-free
-  buyers get it free once per game.
+  over sheet (section 6.1). Clears the three rows with the most filled
+  cells (ties: topmost), discards the current set, generates a fresh
+  three-piece set with `p = 0`, and play resumes with the same score,
+  combo and `setsGenerated`. Paid by one rewarded ad, or by 150 coins.
+  Ad-free buyers get it free once per game.
 - **Reroll** (`reroll` placement): from the tray during play, replaces the
-  remaining unplaced pieces of the current set with a fresh set generated at
-  the current pressure. Paid by one rewarded ad or 50 coins. At most 3
-  rerolls per game in total.
+  remaining unplaced slots of the current set. The director generates
+  `count = remaining` pieces by 5.4 at the current pressure (so the fit
+  guarantee applies to exactly the pieces the player receives), and they
+  fill the unplaced slots in slot order. `setsGenerated` does not advance.
+  Paid by one rewarded ad or 50 coins. At most 3 rerolls per game in total.
+
+### 6.1 Game over, in two states
+A game reaching game over is saved with `status = over` before anything is
+shown. The game over sheet then has two states:
+
+1. **Continue offer** (only if `continuesUsed == 0`): score and best so far,
+   the Continue button (rewarded, 150 coins, or free for ad-free buyers)
+   and an "End game" link. No progression is awarded in this state. Killing
+   the app here resumes to this state.
+2. **Final**: reached by "End game", or directly when a continue is not
+   available. `AppController.finishGame()` runs once: it computes score →
+   best, coins (7.1), XP and level (7.2), achievements (7.7), daily
+   completion (3), writes the profile and deletes the saved game in one
+   awaited storage write, and stores a `LastGameResult {score, coins,
+   xp, levelUps, mode, doubled: false}`. The sheet then shows the result,
+   Double coins (rewarded, only while `doubled == false`; on reward it adds
+   `coins` again, sets `doubled = true`, and persists), Play again and
+   Home. The first-game-of-day +25 is added in `finishGame()` and is not
+   doubled.
 
 ## 7. Meta progression
 
@@ -216,8 +259,9 @@ bands, tune the constants in 5.2–5.4 and record the change here.
 
 ### 7.2 XP and level
 `xp += score ~/ 10` per completed game. Cumulative XP needed to be at level
-`L` (L >= 2): `round(150 * (L - 1) ^ 1.7)`. L2 150, L3 487, L5 1,590,
-L10 6,300, L20 22,300, L30 46,000. A level-up shows on the game over sheet
+`L` (L >= 2): `round(150 * (L - 1) ^ 1.7)`, the formula being
+authoritative: L2 150, L3 487, L5 1,583, L10 6,285, L20 22,386,
+L30 45,938. A level-up shows on the game over sheet
 with its reward: 50 coins x new level, plus the theme it unlocks if any. No
 level cap.
 
@@ -315,6 +359,13 @@ finished lasted >= 30 s; an interstitial is loaded. The next interstitial is
 preloaded after each show. Never on launch, never mid-game, no app-open ads
 in v1.
 
+Policy state is persisted in the profile: `gamesCompleted`,
+`gamesSinceInterstitial`, `lastInterstitialClosedAt` and
+`lastRewardedClosedAt` (epoch milliseconds, 0 when never). Elapsed time is
+`now - stored`; a negative value (clock moved back) counts as not elapsed,
+and if it is more negative than 24 h the stored value is reset to `now`.
+The counters survive restarts, so the caps cannot be reset by relaunching.
+
 ### 8.3 Products
 | product id | type | grants |
 | --- | --- | --- |
@@ -326,9 +377,27 @@ in v1.
 
 Prices are set in Play Console (suggested USD 3.99 / 0.99 / 4.99 / 9.99 /
 2.99) and displayed from the store's localised price. Purchases are
-acknowledged or consumed through the plugin; non-consumables are restored on
-launch and through a "Restore purchases" button in Settings. No server-side
-receipt validation in v1; the risk is accepted and recorded.
+acknowledged or consumed through the plugin under the protocol below;
+non-consumables are restored on launch and through a "Restore purchases"
+button in Settings. No server-side receipt validation in v1; the risk is
+accepted and recorded.
+
+Purchase protocol (`PurchaseService`):
+1. The `purchaseStream` listener is subscribed once, at app start, before
+   any screen, and lives for the process.
+2. Coin packs are bought with `autoConsume: false`. For every update in
+   state `purchased` or `restored`: if `purchaseID` is already in
+   `profile.grantedPurchases` (a capped list of the last 200 ids), skip to
+   step 4. Otherwise grant (coins added, or the non-consumable flag set),
+   append the id, and await the profile write.
+3. Only after that write: consumables are consumed
+   (`InAppPurchaseAndroidPlatformAddition.consumePurchase`) and
+   non-consumables acknowledged (`completePurchase`). A crash between grant
+   and consume replays at the next launch as a `purchased` update whose id
+   is already granted, which step 2 skips and step 3 finishes.
+4. `pending` shows the shop item in a pending state; `error` and `canceled`
+   dismiss it with a short message. On launch `restorePurchases()` runs
+   after the listener is attached.
 
 ### 8.4 Consent
 On launch the app requests consent info (UMP). If a form is required it is
@@ -352,8 +421,9 @@ real ads service uses Google's test unit ids.
   Themes and Shop entries, achievements entry.
 - **Play** (Flame `GameWidget` with Flutter overlays): HUD (score, best,
   combo banner), 8x8 grid, tray with three pieces, reroll button, pause.
-- **Game over sheet**: score, best (with "New best" state), coins earned,
-  level progress, Continue (rewarded/coins), Double coins (rewarded), Play
+- **Game over sheet**: the two states of 6.1. Continue offer: score, best,
+  Continue (rewarded/coins/free), End game. Final: score, best (with "New
+  best" state), coins earned, level progress, Double coins (rewarded), Play
   again, Home.
 - **Daily result**: today's score, streak, share button (text card), second
   attempt (rewarded) if unused.
@@ -414,9 +484,11 @@ permission is requested only after the second completed game, from a sheet
 that explains it ("Get a reminder when the daily puzzle is ready"), with a
 "Not now" that never re-asks. The daily reward sheet is not shown on day 1.
 
-Reminder: one local notification at 19:00 local time on any day the player
-has not opened the app, scheduled inexactly. Cancelled on open,
-re-scheduled on background. Text (Codex, 2026-09-08): title "Daily puzzle
+Reminder: one local notification, scheduled inexactly for 19:00 local
+time on the first local date after today (never today's 19:00, since the
+player has just used the app). On every open the pending reminder is
+cancelled; on every background it is recomputed from the current local
+time zone and rescheduled. Text (Codex, 2026-09-08): title "Daily puzzle
 ready", body "Today's puzzle is ready to play."
 
 ## 11. Technical shape
@@ -425,7 +497,10 @@ Flutter 3.41 / Dart 3.11, Android only in v1 (minSdk 24, targetSdk from the
 Flutter template, currently 36). Packages: flame 1.38, flame_audio 2.12,
 google_mobile_ads 9.1, in_app_purchase 3.3, shared_preferences 2.5,
 flutter_local_notifications 22.3, timezone 0.11, flutter_timezone,
-package_info_plus, url_launcher, share_plus.
+package_info_plus, url_launcher, share_plus. `in_app_purchase_android`
+resolves to 0.5.0 (Play Billing 8.0.0, the version Play requires since
+2026-08-31); 0.5.1+ needs Flutter 3.44, so do not bump it without
+upgrading the SDK.
 
 ```
 app/lib/
