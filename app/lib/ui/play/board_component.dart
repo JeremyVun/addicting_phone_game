@@ -58,10 +58,12 @@ class BoardComponent extends PositionComponent {
   void _syncPaints() {
     _wellPaint.color = _painter.palette.well;
     _wellEdge
-      ..color = _painter.palette.hairline
+      ..color = _painter.palette.lightGround
+          ? const Color(0x14000000)
+          : const Color(0x0AFFFFFF)
       ..strokeWidth = 1;
     _wellInner.color = _painter.palette.lightGround
-        ? const Color(0x1A000000)
+        ? const Color(0x14000000)
         : const Color(0xE6000000);
   }
 
@@ -188,6 +190,10 @@ class BoardComponent extends PositionComponent {
       geom.wellRadius,
     );
     canvas.drawRRect(r, _wellPaint);
+    canvas.save();
+    canvas.clipRRect(r);
+    canvas.drawRect(Rect.fromLTWH(0, 0, geom.well.width, 1.2 * geom.s), _wellInner);
+    canvas.restore();
     canvas.drawRRect(r.deflate(0.5), _wellEdge);
 
     final ox = geom.gridOrigin.dx - geom.well.left;

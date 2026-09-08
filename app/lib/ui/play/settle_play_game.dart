@@ -70,6 +70,7 @@ class SettlePlayGame extends FlameGame with DragCallbacks {
   int _scoreTo = 0;
   double _dimT = -1;
   bool _locked = false;
+  bool _ready = false;
 
   /// The anchor the current drag is aiming at, or (-1, -1).
   @visibleForTesting
@@ -86,12 +87,16 @@ class SettlePlayGame extends FlameGame with DragCallbacks {
     board = BoardComponent(geom: geom, painter: painter);
     tray = TrayComponent(geom: geom, painter: painter);
     await addAll([board, tray]);
+    _ready = true;
     _hardReset();
   }
 
+  /// The first layout pass can arrive at zero size, so the geometry is kept
+  /// even before `onLoad`, which then builds the components from it.
   void applyGeometry(PlayGeometry next) {
     if (next.size == geom.size) return;
     geom = next;
+    if (!_ready) return;
     _cancelHold();
     board.removeFromParent();
     tray.removeFromParent();
@@ -107,6 +112,7 @@ class SettlePlayGame extends FlameGame with DragCallbacks {
   /// difference. A new `state.id` is a new game and is never animated, so a
   /// restart shows its board on the next frame.
   void syncFromHost() {
+    if (!_ready) return;
     if (painter.palette != host.palette) {
       painter = TilePainter(host.palette);
       board.painter = painter;

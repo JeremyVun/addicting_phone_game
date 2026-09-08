@@ -8,6 +8,8 @@
 #        tools/emu.sh tap <x> <y>
 #        tools/emu.sh swipe <x1> <y1> <x2> <y2> [ms]          fast swipe (ONE move event: not a real drag)
 #        tools/emu.sh drag <x1> <y1> <x2> <y2> [steps]        slow multi-step drag the game sees as a drag
+#        tools/emu.sh hold <x1> <y1> <x2> <y2> [steps]        same, but leaves the finger DOWN (shoot mid-drag)
+#        tools/emu.sh release <x> <y>                          lift the finger a `hold` left down
 #        tools/emu.sh size                                    print the current display size in pixels
 #        tools/emu.sh logcat [seconds]                        flutter-tagged logcat
 #        tools/emu.sh perf reset | tools/emu.sh perf dump     gfxinfo jank percentage and frame percentiles
@@ -37,7 +39,9 @@ install)
   done
   cd "$ROOT/app"
   flutter build apk --debug -t "$entry"
-  adbd install -r -t build/app/outputs/flutter-apk/app-debug.apk
+  # The emulator's /data runs out of room after a few -r installs.
+  adbd uninstall "$PKG" >/dev/null 2>&1 || true
+  adbd install -t build/app/outputs/flutter-apk/app-debug.apk
   ;;
 
 launch)
@@ -75,6 +79,20 @@ drag)
     done
     echo "input motionevent UP $x2 $y2"
   } | adbd shell
+  ;;
+
+hold)
+  x1="$1"; y1="$2"; x2="$3"; y2="$4"; steps="${5:-12}"
+  {
+    echo "input motionevent DOWN $x1 $y1"
+    for i in $(seq 1 "$steps"); do
+      echo "input motionevent MOVE $(( x1 + (x2 - x1) * i / steps )) $(( y1 + (y2 - y1) * i / steps ))"
+    done
+  } | adbd shell
+  ;;
+
+release)
+  adbd shell input motionevent UP "$1" "$2"
   ;;
 
 size)

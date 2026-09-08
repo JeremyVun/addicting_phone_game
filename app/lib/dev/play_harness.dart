@@ -21,6 +21,7 @@ enum Scenario {
   mid('mid'),
   clearMoment('clear'),
   danger('danger'),
+  gameOver('over'),
   weights('type');
 
   const Scenario(this.label);
@@ -28,19 +29,25 @@ enum Scenario {
   final String label;
 }
 
+const _danger =
+    '4433.1.7445.311.4453..112.53.76666.3446.6644337..651005555.00055';
+
+/// `clear` is authored so that dropping slot 0's i3 at row 3, col 5 completes
+/// row 3 and column 6 at once: two lines on a combo of 3.
 const _boards = {
   Scenario.mid: '..3..1...53..17..53.417...2.4...6.22447.6644..70.6...0..55.0.0..',
   Scenario.clearMoment:
-      '....71...53..1...53.415.123456706.2244..66..1370...5.0..55...4..',
-  Scenario.danger:
-      '4433.1.7445.311.4453..112.53.76666.3446.6644337..651005555.00055',
+      '..3...4..53...4..53.4.4.12345...6.22447.66..1370...5.07055...476',
+  Scenario.danger: _danger,
+  Scenario.gameOver: _danger,
 };
 
 const _sets = {
   Scenario.empty: ['o2:0', 'l3:0', 'i3:0'],
   Scenario.mid: ['l4:0', 'i2:0', 't4:0'],
-  Scenario.clearMoment: ['t4:0', 'l3:0', null],
+  Scenario.clearMoment: ['i3:0', 't4:0', null],
   Scenario.danger: [null, 'o3:0', null],
+  Scenario.gameOver: ['dot:0', 'o3:0', null],
 };
 
 class HarnessHost extends ChangeNotifier implements PlayHost {
@@ -107,6 +114,7 @@ class HarnessHost extends ChangeNotifier implements PlayHost {
           : List.unmodifiable([for (final id in ids) id == null ? null : Piece.byId[id]]),
       score: s == Scenario.empty ? 0 : 4820,
       comboCount: s == Scenario.clearMoment ? 3 : 0,
+      missCount: 0,
       maxCombo: s == Scenario.empty ? 0 : 3,
       placements: s == Scenario.empty ? 0 : 40,
     );

@@ -64,6 +64,9 @@ class _PlayScreenState extends State<PlayScreen> {
     final media = MediaQuery.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
+        if (constraints.maxWidth < 120 || constraints.maxHeight < 200) {
+          return ColoredBox(color: widget.host.palette.ground);
+        }
         final geom = PlayGeometry.of(
           constraints.biggest,
           safeTop: media.padding.top,
@@ -79,27 +82,32 @@ class _PlayScreenState extends State<PlayScreen> {
         return ValueListenableBuilder<double>(
           valueListenable: game.dim,
           builder: (context, dim, child) => _Dimmed(amount: dim, child: child!),
-          child: Stack(
-            children: [
-              Positioned.fill(child: GameWidget(game: game)),
-              _Hud(host: widget.host, game: game, geom: geom),
-              _Band(host: widget.host, geom: geom),
-              Positioned.fromRect(
-                rect: geom.pauseButton,
-                child: _TapTarget(
-                  key: const ValueKey('pause'),
-                  onTap: widget.host.requestPause,
-                  semantics: PlayStrings.pauseSemantics,
-                  child: Center(
-                    child: PlayIconBox(
-                      PlayIcon.pause,
-                      size: 20 * geom.s,
-                      colour: widget.host.palette.faint,
+          // A loose Stack would collapse to its smallest child and leave the
+          // GameWidget with no size at all.
+          child: SizedBox.fromSize(
+            size: geom.size,
+            child: Stack(
+              children: [
+                Positioned.fill(child: GameWidget(game: game)),
+                _Hud(host: widget.host, game: game, geom: geom),
+                _Band(host: widget.host, geom: geom),
+                Positioned.fromRect(
+                  rect: geom.pauseButton,
+                  child: _TapTarget(
+                    key: const ValueKey('pause'),
+                    onTap: widget.host.requestPause,
+                    semantics: PlayStrings.pauseSemantics,
+                    child: Center(
+                      child: PlayIconBox(
+                        PlayIcon.pause,
+                        size: 20 * geom.s,
+                        colour: widget.host.palette.faint,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
@@ -150,7 +158,10 @@ class _Hud extends StatelessWidget {
           Positioned(
             left: geom.pad,
             top: geom.hudTop,
-            child: Text(PlayStrings.score, style: PlayType.label(geom.s, p.faint)),
+            child: Text(
+              PlayStrings.score,
+              style: PlayType.label(geom.s, p.faint),
+            ),
           ),
           Positioned(
             left: geom.pad,
@@ -167,7 +178,10 @@ class _Hud extends StatelessWidget {
             Positioned(
               right: geom.pad,
               top: geom.hudTop,
-              child: Text(PlayStrings.best, style: PlayType.label(geom.s, p.faint)),
+              child: Text(
+                PlayStrings.best,
+                style: PlayType.label(geom.s, p.faint),
+              ),
             ),
           if (showBest)
             Positioned(
@@ -245,7 +259,9 @@ class _ComboBannerState extends State<_ComboBanner>
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        final t = Curves.easeOutBack.transform(_controller.value.clamp(0.0, 1.0));
+        final t = Curves.easeOutBack.transform(
+          _controller.value.clamp(0.0, 1.0),
+        );
         return Opacity(
           opacity: _controller.value.clamp(0.0, 1.0),
           child: Transform.scale(scale: 0.7 + 0.3 * t, child: child),
@@ -279,7 +295,8 @@ class _Band extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = host.palette;
     final hint = _hint;
-    final canReroll = host.state.status == GameStatus.playing &&
+    final canReroll =
+        host.state.status == GameStatus.playing &&
         host.state.rerollsUsed < 3 &&
         host.state.set.any((piece) => piece != null);
     return Positioned.fromRect(
@@ -363,12 +380,12 @@ class _TapTarget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-        button: true,
-        label: semantics,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onTap,
-          child: child,
-        ),
-      );
+    button: true,
+    label: semantics,
+    child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: child,
+    ),
+  );
 }
