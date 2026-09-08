@@ -45,7 +45,7 @@ already finished) it returns the *unchanged* profile. Nothing throws.
 | `dailyRewardCycle` | 25, 50, 75, 100, 150, 200, 400 | 7.4 |
 | `dailyRewardCycleLength` | 7 | 7.4 |
 | `freezeCost` / `maxFreezesHeld` | 200 / 2 | 7.5 |
-| `initialSkill` / `skillRetain` / `skillLearn` / `skillScoreCap` | 0.35 / 0.8 / 0.2 / 6000 | 7.6 |
+| `initialSkill` / `skillRetain` / `skillLearn` / `skillScoreCap` | 0.35 / 0.8 / 0.2 / 4000 | 7.6 |
 | `continueCost` / `maxContinuesPerGame` | 150 / 1 | 6, 8.1 |
 | `rerollCost` / `maxRerollsPerGame` | 50 / 3 | 6, 8.1 |
 | `interstitialMinLifetimeGames` | 3 | 8.2 |
@@ -84,7 +84,7 @@ Achievements (7.7): the 16 ids, names, descriptions and coin rewards are in
 5. `gamesCompleted += 1`, `gamesSinceInterstitial += 1`,
    `lastFinishedGameId = summary.gameId`.
 6. Classic only: `bestClassic = max(...)` and
-   `skill = 0.8 * skill + 0.2 * clamp(score / 6000, 0, 1)` (7.6). A daily
+   `skill = 0.8 * skill + 0.2 * clamp(score / 4000, 0, 1)` (7.6). A daily
    game never moves `skill`.
 7. Daily only, at `ordinal = summary.dayOrdinal ?? dayOrdinal(now)`:
    `bestDaily = max(...)`, `dailyBest[ordinal] = max(...)`,

@@ -37,7 +37,7 @@ class Economy {
   static const double initialSkill = 0.35;
   static const double skillRetain = 0.8;
   static const double skillLearn = 0.2;
-  static const double skillScoreCap = 6000;
+  static const double skillScoreCap = 4000;
 
   // 6 / 8.1 spends and caps
   static const int continueCost = 150;
