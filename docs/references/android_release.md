@@ -59,8 +59,7 @@ plugins {
 include(":app")
 ```
 
-- Settings-level id is `dev.flutter.flutter-plugin-loader`; module-level id is `dev.flutter.flutter-gradle-plugin`. Not interchangeable.
-- AGP/Kotlin pins above are what master emits; your local SDK may differ — read the generated file.
+- Settings-level id is `dev.flutter.flutter-plugin-loader`; module-level id is `dev.flutter.flutter-gradle-plugin` — not interchangeable. AGP/Kotlin pins above are what master emits; your local SDK may differ, so read the generated file.
 
 ### android/app/build.gradle.kts
 
@@ -80,10 +79,7 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-
-    kotlin {
-        jvmToolchain(17)
-    }
+    kotlin { jvmToolchain(17) }
 
     defaultConfig {
         applicationId = "com.example.addicting_phone_game"
@@ -106,14 +102,13 @@ flutter {
 ```
 
 - Upstream `hello_world` uses `JavaVersion.VERSION_1_8` and no `jvmToolchain` block (it has no Kotlin sources, hence no `kotlin-android`). Exact Java level emitted by current `flutter create` is `UNVERIFIED` — read the generated file.
-- `flutter { source = "../.." }` points the plugin at the Dart project root; removing it breaks the build. Prefer the `flutter.*` accessors over hardcoded SDK levels.
+- `flutter { source = "../.." }` points the plugin at the Dart project root; removing it breaks the build. Prefer `flutter.*` accessors over hardcoded SDK levels.
 
 ### namespace vs applicationId
 
-- `namespace` — Java/Kotlin package for generated `R`/`BuildConfig`. Compile-time only, freely changeable.
+- `namespace` — Java/Kotlin package for generated `R`/`BuildConfig`; compile-time only, freely changeable.
 - `applicationId` — the app's identity on device and on Play. **Play locks it forever on first upload**: unrenameable, and unreusable on another listing even after unpublishing. `com.example.*` is rejected outright.
-- Both default to the same string from `flutter create --org`, which is why they get conflated.
-- Flavor `applicationIdSuffix` changes applicationId, not namespace — so the flavor naming scheme is equally permanent. Decide both before the first upload.
+- Both default to the same string from `flutter create --org`, which is why they get conflated. Flavor `applicationIdSuffix` changes applicationId, not namespace — so the flavor naming scheme is equally permanent. Decide both before the first upload.
 
 ### SDK floors
 
@@ -129,12 +124,10 @@ Net: `minSdk = 24`, `compileSdk = flutter.compileSdkVersion` (already >= 35 on F
 
 ## Play target API level policy
 
-Verbatim, developer.android.com/google/play/requirements/target-sdk:
-
 > "Starting August 31 2026: New apps and app updates must target Android 16 (API level 36) or higher to be submitted to Google Play; except for Wear OS and Android Automotive OS apps, which must target Android 15 (API level 35) or higher, and Android TV and Android XR apps, which must target Android 14 (API level 34) or higher."
-
+>
 > "Existing apps must target Android 15 (API level 35) or higher to remain available to new users on devices running Android OS higher than your app's target API level."
-
+>
 > "If you need more time to update your app, you'll be able to request an extension to November 1, 2026."
 
 Deadline **2026-08-31**; extension window closes **2026-11-01**. Both are already past as of 2026-09-08 — a new game must ship `targetSdk = 36`. `flutter.targetSdkVersion` on 3.47 satisfies this; confirm against the merged manifest rather than assuming.
@@ -195,11 +188,10 @@ key.properties
 ## Play App Signing
 
 > "Android uses two signing keys: _upload_ and _app signing_. Developers upload an `.aab` or `.apk` file signed with an _upload key_ to the Play Store. The end-users download the `.apk` file signed with an _app signing key_." — docs.flutter.dev
-
+>
 > "Because Google signs the final APK, you must register the Google-held app signing key fingerprint with your API providers, not just your local upload key." — Play Console Help
 
-- Upload key: yours, RSA 2048+, replaceable via support if lost. App signing key: Google's, RSA 4096, permanent.
-- Fingerprints: Play Console > Protected with Play > Play Store distribution > Play app signing > App signing key; copy SHA-1/SHA-256.
+- Upload key: yours, RSA 2048+, replaceable via support if lost. App signing key: Google's, RSA 4096, permanent. Fingerprints: Play Console > Protected with Play > Play Store distribution > Play app signing > App signing key; copy SHA-1/SHA-256.
 - Anything authenticating by certificate fingerprint — Google Sign-In, Play Games Services, Firebase Auth, Maps — fails for Play users if only the upload key is registered (`ApiException: 10`, `DEVELOPER_ERROR`). Register **both** fingerprints.
 
 ## R8 / keep rules
@@ -245,20 +237,17 @@ buildTypes {
 ```
 
 - Play Services Ads and Play Billing ship consumer ProGuard rules inside their AARs; the ads/billing keeps above are defensive. `UNVERIFIED` that they are strictly required at current versions — no first-party doc mandates them.
-- The Play Core failures are real and tracked upstream (flutter/flutter#165646, #139462): `Missing class com.google.android.play.core.splitcompat.SplitCompatApplication` and `com.google.android.play.core.tasks.OnFailureListener` referenced from `PlayStoreDeferredComponentManager`, in apps that never use deferred components.
-- The authoritative fix list is generated for you at `build/app/outputs/mapping/release/missing_rules.txt` — paste it into `proguard-rules.pro`.
+- The Play Core failures are real and tracked upstream (flutter/flutter#165646, #139462): `Missing class com.google.android.play.core.splitcompat.SplitCompatApplication` and `com.google.android.play.core.tasks.OnFailureListener` referenced from `PlayStoreDeferredComponentManager`, in apps that never use deferred components. The authoritative fix list is generated for you at `build/app/outputs/mapping/release/missing_rules.txt` — paste it into `proguard-rules.pro`.
 
 ## Obfuscation and symbols
 
 ```bash
 flutter build appbundle --obfuscate --split-debug-info=build/symbols/
 flutter symbolize -i <stack-trace-file> -d <obfuscated-symbols-file>
-flutter build appbundle --obfuscate --split-debug-info=build/symbols/ \
-   --extra-gen-snapshot-options=--save-obfuscation-map=build/symbols/map.json
+# optional name map: --extra-gen-snapshot-options=--save-obfuscation-map=build/symbols/map.json
 ```
 
-- Emits `app.<platform>-<architecture>.symbols` (e.g. `app.android-arm64.symbols`). Windows x64 emits a PDB, which `flutter symbolize` cannot read — use WinDbg.
-- Archive the symbols directory per released build-number, off-machine. Without it a crash report is unreadable forever.
+- Emits `app.<platform>-<architecture>.symbols` (e.g. `app.android-arm64.symbols`); Windows x64 emits a PDB that `flutter symbolize` cannot read (use WinDbg). Archive the symbols directory per released build-number, off-machine — without it a crash report is unreadable forever.
 - `runtimeType.toString()` compared against a literal breaks under obfuscation; enum names are currently not obfuscated.
 - R8's Java mapping is separate: upload `build/app/outputs/mapping/release/mapping.txt` to Play Console (App bundle explorer > version > Downloads > deobfuscation file) so Android Vitals can read native/Java frames. Dart frames still need `flutter symbolize`.
 
@@ -306,13 +295,9 @@ flutter_launcher_icons:
   remove_alpha_ios: true
 ```
 
-```bash
-flutter pub get
-dart run flutter_launcher_icons
-```
+`flutter pub get && dart run flutter_launcher_icons`
 
-- `adaptive_icon_background` takes a colour string or an image asset path. `adaptive_icon_monochrome` drives Android 13+ themed icons; without it the launcher renders a washed-out auto fallback.
-- Adaptive foreground: design at 432x432 with the logo inside the centre ~264x264 — the outer ~18% of each edge is masked away.
+- `adaptive_icon_background` takes a colour string or an image asset path; `adaptive_icon_monochrome` drives Android 13+ themed icons, and without it the launcher renders a washed-out auto fallback. Adaptive foreground: design at 432x432 with the logo inside the centre ~264x264, since the outer ~18% of each edge is masked away.
 - The Play **listing** icon is separate and not generated: 512x512, 32-bit PNG with alpha, max 1024 KB, uploaded in Play Console.
 
 ## Splash — flutter_native_splash 2.4.8
@@ -337,14 +322,13 @@ dart run flutter_native_splash:remove
 ```
 
 - On Android 12+ the splash is the **system** splash screen: window background + centre icon + optional icon background. Background images are unsupported there, only the `android_12` keys — pre-12 art simply will not appear on modern devices.
-- Package notes the splash "may not appear when you launch the app from Android Studio on API 31"; launch from the launcher icon instead. It also does not show on notification launches (intended Android 12 behaviour).
+- Package notes the splash "may not appear when you launch the app from Android Studio on API 31" — launch from the launcher icon instead. It also does not show on notification launches (intended Android 12 behaviour). Re-run `:create` after any `flutter clean`.
 
 ## Testing tracks and release
 
-- **Internal testing**: up to 100 testers, near-instant, no review wait. Fastest route to a Play-signed, Play-distributed build — use it for all IAP and ad-fill verification.
+- **Internal testing**: up to 100 testers, near-instant, no review wait — the fastest route to a Play-signed, Play-distributed build, so use it for all IAP and ad-fill verification.
 - **Closed testing requirement**, verbatim: applies to "personal developer accounts created after November 13, 2023", which must run a closed test with "a minimum of 12 testers who have been opted in continuously for at least 14 days" before applying for production access on the Play Console Dashboard. Organisation accounts, and accounts created on or before 2023-11-13, are exempt.
-- Community sources report Google now also checks that testers genuinely used the app, and that all 12 must overlap in one continuous window (a drop-out resets the counter). `UNVERIFIED` — not stated in the first-party help page.
-- The Data safety form is required for every track except internal testing.
+- Community sources report Google now also checks that testers genuinely used the app and that all 12 must overlap in one continuous window, a drop-out resetting the counter (`UNVERIFIED`, not in the first-party page). The Data safety form is required for every track except internal testing.
 
 ## Gotchas
 
@@ -353,9 +337,8 @@ dart run flutter_native_splash:remove
 - **IAP and real ads require a Play-distributed build.** `in_app_purchase` returns empty product lists on a sideloaded APK and AdMob serves test/no-fill. Verify on the internal testing track with licensed tester accounts, never via `flutter run --release`.
 - R8 fails on `com.google.android.play.core.*` classes referenced by Flutter's deferred-components embedding even in apps that never use them. Fix from `missing_rules.txt`.
 - A missing `com.google.android.gms.ads.APPLICATION_ID` `<meta-data>` crashes at startup with "Missing application ID" — release-only if the tag was never absent in debug.
-- No `mapping.txt` upload means unreadable Android Vitals crashes; no archived `--split-debug-info` symbols means permanently unreadable Dart stack traces.
-- `flutter.minSdkVersion` (24 since Flutter 3.35) can silently overwrite an explicit `minSdk` (flutter/flutter#177141).
-- Declaring any under-13 band in target audience irreversibly changes which ad SDKs you may use, and a wrong answer counts as misrepresentation, which is suspension-grade.
+- No `mapping.txt` upload means unreadable Android Vitals crashes; no archived `--split-debug-info` symbols means permanently unreadable Dart stack traces. Separately, `flutter.minSdkVersion` (24 since Flutter 3.35) can silently overwrite an explicit `minSdk` (flutter/flutter#177141).
+- Declaring any under-13 band in target audience changes which ad SDKs you may use, and a wrong answer counts as misrepresentation, which is suspension-grade.
 - `flutter clean` wipes generated splash/icon resources; re-run both generators in CI before release builds.
 
 ## Play Console checklist
@@ -367,15 +350,13 @@ dart run flutter_native_splash:remove
   - [ ] Location — approximate location (AdMob geo-targeting), unless disabled
   - [ ] App activity — app interactions (analytics / ad measurement)
   - [ ] Financial info — purchase history, if you read it
-  - [ ] Third-party SDK collection is yours to declare: the form covers "data collected and handled through any third-party libraries or SDKs used in their apps"
-  - [ ] Encryption-in-transit and data-deletion answers
+  - [ ] Third-party SDK collection is yours to declare (the form covers "data collected and handled through any third-party libraries or SDKs used in their apps"), plus encryption-in-transit and data-deletion answers
 - [ ] **Content rating (IARC) questionnaire** completed, declaring in-app purchases and ads. Unrated apps "may be removed from Google Play".
 - [ ] **Ads declaration**: "contains ads" under App content > Ads — drives the store badge.
 - [ ] **Target audience and content** age bands chosen. Any under-13 band enters the Families programme; 13+ avoids that whole compliance surface for a general puzzle game.
 - [ ] App access (no login required, or test credentials), plus news/COVID/data-deletion N/A answers.
 - [ ] Store listing assets: icon 512x512 32-bit PNG with alpha (max 1024 KB); feature graphic 1024x500 JPEG or 24-bit PNG with no alpha; screenshots min 2 to publish, 4+ at 1080px min for promotion eligibility, 16:9 landscape (min 1920x1080) or 9:16 portrait (min 1080x1920), min side 320px, max 3840px, longest side <= 2x shortest, up to 8 per device type; descriptions free of misleading claims or fake badges.
-- [ ] Play App Signing enrolled; app signing SHA-1 + SHA-256 added to Firebase / Cloud OAuth clients alongside the upload key.
-- [ ] `mapping.txt` uploaded; `--split-debug-info` symbols archived off-machine.
+- [ ] Play App Signing enrolled; app signing SHA-1 + SHA-256 added to Firebase / Cloud OAuth clients alongside the upload key. `mapping.txt` uploaded and `--split-debug-info` symbols archived off-machine.
 - [ ] IAP products created and **activated** (Monetize > Products > In-app products); licensed testers added under Setup > License testing.
 - [ ] AdMob app linked to the listing; `app-ads.txt` published if running mediation.
 - [ ] Closed testing 12-testers / 14-days completed and production access approved (personal accounts created after 2023-11-13).
@@ -385,23 +366,21 @@ dart run flutter_native_splash:remove
 ### Ads policy
 
 > "Ads may only be displayed inside of the app serving them and must not interfere with other apps, ads, or the operation of the device."
-
+>
 > "Full screen interstitial ads of all formats (video, GIF, static, etc.) that show unexpectedly, typically when the user has chosen to do something else, are not allowed."
-
+>
 > "Full screen video interstitial ads that appear before an app's loading screen (splash screen) are not allowed."
-
+>
 > "Full screen interstitial ads of all formats that are not closeable after 15 seconds are not allowed."
-
+>
 > "This policy does not apply to rewarded ads which are explicitly opted-in by users (for example, an ad that developers explicitly offer a user to watch in exchange for unlocking a specific game feature or a piece of content)."
-
+>
 > "Ads must not simulate or impersonate the user interface of any app feature, such as notifications or warning elements of an operating system. It must be clear to the user which app is serving each ad."
 
 Implementation rules that follow:
 
-- Rewarded ads are user-initiated only — a button tap. Never auto-play on level start, level fail, or app resume.
-- State the reward before the ad ("Watch an ad for 50 coins") and grant it on the SDK reward callback, not on ad close.
-- No interstitial on launch/splash or mid-gameplay. Between-level boundaries with a visible transition are the safe placement.
-- Close button reachable and functional within 15s: not under a notch, not offscreen, not covered by a decoy X.
+- Rewarded ads are user-initiated only — a button tap, never auto-play on level start, level fail, or app resume. State the reward before the ad ("Watch an ad for 50 coins") and grant it on the SDK reward callback, not on ad close.
+- No interstitial on launch/splash or mid-gameplay; between-level boundaries with a visible transition are the safe placement. Close button reachable and functional within 15s: not under a notch, not offscreen, not covered by a decoy X.
 - The listing must not misrepresent gameplay — screenshots and promo video must show the actual puzzle, not a different minigame. One of the most common puzzle-game takedown causes.
 
 ### Payments
@@ -414,8 +393,7 @@ Enumerated digital goods include "virtual currencies, extra lives, additional pl
 
 Payments policy (May 2019 update): apps offering mechanisms to receive randomized virtual items from a purchase, including loot boxes, must clearly disclose the odds of receiving those items in advance of, and in close and timely proximity to, the purchase.
 
-- Show per-item probabilities on the purchase screen itself, not buried in settings.
-- Deterministic "N coins for $X" packs do not trigger this; a mystery chest bought with those coins does. `UNVERIFIED` whether a chest purchasable only with earned soft currency is in scope — treat it as in scope.
+Show per-item probabilities on the purchase screen itself, not buried in settings. Deterministic "N coins for $X" packs do not trigger this; a mystery chest bought with those coins does. `UNVERIFIED` whether a chest purchasable only with earned soft currency is in scope — treat it as in scope.
 
 ### Real-money gambling exclusion
 
