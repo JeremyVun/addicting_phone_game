@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:settle/ui/strings.dart';
 import 'package:settle/app.dart';
 import 'package:settle/meta/meta.dart';
 import 'package:settle/ui/screens/streak_sheet.dart';
