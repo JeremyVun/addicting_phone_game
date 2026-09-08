@@ -31,8 +31,8 @@ void main() {
 
     await tester.scrollUntilVisible(find.text('Lagoon'), 200);
     expect(find.text('Level 30'), findsOneWidget);
-    expect(find.text('Buy for 1500 coins'), findsOneWidget);
-    expect(find.text('3000 coins'), findsOneWidget);
+    expect(find.text('Buy for 1,500 coins'), findsOneWidget);
+    expect(find.text('3,000 coins'), findsOneWidget);
   });
 
   testWidgets('tapping an unlocked slot selects it and re-themes', (

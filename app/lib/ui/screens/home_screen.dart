@@ -34,6 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
   /// every return until the player answers them, so they are not dismissible.
   void _offerPendingSheets() {
     if (_sheetUp || !mounted) return;
+    if (ModalRoute.of(context)?.isCurrent != true) return;
     final Widget? sheet = controller.reminderPromptDue
         ? NotificationPromptSheet(controller: controller)
         : controller.dailyRewardClaimable
@@ -43,6 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _sheetUp = true;
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       isDismissible: false,
       enableDrag: false,
       backgroundColor: const Color(0x00000000),
@@ -56,6 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
         pending != null && pending.dayOrdinal == controller.today ? pending : null;
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: const Color(0x00000000),
       builder: (_) => DailyResultSheet(controller: controller, result: result),
     );
@@ -63,6 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _openStreakSheet() => showModalBottomSheet<void>(
     context: context,
+    isScrollControlled: true,
     backgroundColor: const Color(0x00000000),
     builder: (_) => StreakSheet(controller: controller),
   );

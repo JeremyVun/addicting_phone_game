@@ -27,6 +27,7 @@ void main() {
     );
 
     expect(find.text('9'), findsOneWidget);
+    expect(find.text('Coins'), findsOneWidget);
     expect(find.text('0 of 2 freezes'), findsOneWidget);
     expect(find.text('A freeze keeps your streak if you miss one day.'), findsOneWidget);
 

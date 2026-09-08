@@ -31,8 +31,6 @@ class StreakSheet extends StatelessWidget {
             style: manrope(size: 15, weight: 700, color: palette.muted),
           ),
           const SizedBox(height: 12),
-          SheetLabel(text: S.homeStreakLabel, palette: palette),
-          const SizedBox(height: 2),
           SheetHeadline(value: formatCount(profile.streak), palette: palette),
           const SizedBox(height: 14),
           StatRow(
@@ -41,7 +39,7 @@ class StreakSheet extends StatelessWidget {
             value: S.streakFreezes(profile.freezesHeld),
           ),
           StatRow(
-            label: S.homeShop,
+            label: S.overCoinsEarned,
             palette: palette,
             valueWidget: CoinChip(
               coins: profile.coins,

@@ -6,6 +6,7 @@ import '../strings.dart';
 import '../theme/palettes.dart';
 import '../theme/typography.dart';
 import '../widgets/coin_chip.dart';
+import '../widgets/format.dart';
 
 /// Design 7.3. Selecting re-themes the whole app because `SettleApp` rebuilds
 /// on `controller.palette`.
@@ -79,8 +80,8 @@ class _ThemeTile extends StatelessWidget {
         : slot.unlockKind == ThemeUnlockKind.level
         ? S.themesLevelLock(slot.requirement)
         : buyable
-        ? S.themesBuy(slot.requirement)
-        : S.themesCoinLock(slot.requirement);
+        ? S.themesBuy(formatCount(slot.requirement))
+        : S.themesCoinLock(formatCount(slot.requirement));
     final onTap = selected
         ? null
         : unlocked
