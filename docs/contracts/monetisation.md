@@ -39,7 +39,9 @@ placeholders is ad-free rather than crashed or serving test ads to players.
 `privacyOptionsRequired` is a cached bool read once after the flow
 (`getPrivacyOptionsRequirementStatus() == required`) because the `AdsService`
 getter is synchronous; `showPrivacyOptions()` shows
-`ConsentForm.showPrivacyOptionsForm` and re-reads it afterwards.
+`ConsentForm.showPrivacyOptionsForm` and re-reads it afterwards. It resolves
+during launch, so Settings has the right answer by the time it can be opened;
+the row does not appear mid-frame if the flow is still running.
 
 **Debug-only geography override.** `--dart-define=SETTLE_FORCE_EEA=true` passes
 `ConsentDebugSettings(debugGeography: debugGeographyEea)`, optionally with
