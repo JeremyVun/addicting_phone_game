@@ -4,7 +4,7 @@ import '../app.dart';
 import 'navigation.dart';
 import 'screens/home_screen.dart';
 import 'screens/placeholder_screen.dart';
-import 'screens/play_route.dart';
+import 'play/play_screen.dart';
 import 'strings.dart';
 import 'theme/palettes.dart';
 import 'theme/typography.dart';
@@ -50,8 +50,11 @@ class _SettleAppState extends State<SettleApp> {
         routes: {
           WidgetNavigator.homeRoute: (_) =>
               HomeScreen(controller: widget.controller),
-          WidgetNavigator.playRoute: (_) =>
-              PlayRoute(host: widget.controller),
+          WidgetNavigator.playRoute: (_) => PlayScreen(
+            host: widget.controller,
+            audio: widget.controller.services.audio,
+            haptics: widget.controller.services.haptics,
+          ),
           '/shop': (_) =>
               PlaceholderScreen(title: S.shopTitle, palette: palette),
           '/themes': (_) =>

@@ -115,5 +115,4 @@ abstract final class S {
   static const String commonClose = 'Close';
   static String levelLabel(Object level) => 'Level $level';
   static const String comingSoon = 'Coming soon';
-  static const String standInPlayBanner = 'Stand-in play screen';
 }
