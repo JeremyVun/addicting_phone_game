@@ -64,6 +64,24 @@ void main() {
     expect(harness.controller.state.continuesUsed, 1);
   });
 
+  test('a second game over with no continue left finishes the game', () async {
+    final harness = Harness(now: now);
+    await harness.start();
+    await harness.controller.startClassic();
+    await playToGameOver(harness.controller);
+    await harness.controller.continueGame();
+    expect(harness.controller.continueAvailable, isFalse);
+
+    await playToGameOver(harness.controller);
+    harness.controller.onGameOver();
+    await harness.controller.idle;
+    await pumpEventQueue();
+
+    expect(harness.controller.lastResult, isNotNull);
+    expect(harness.controller.profile.gamesCompleted, 1);
+    expect(harness.navigator.calls.last, 'showGameOver');
+  });
+
   test('continue is free for an ad-free buyer', () async {
     final harness = Harness(now: now);
     await harness.start();

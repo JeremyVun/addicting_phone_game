@@ -118,7 +118,7 @@ class AppController extends ChangeNotifier
     final game = _data.savedGame;
     if (game == null) return;
     navigator.goPlay();
-    if (game.status == core.GameStatus.over) navigator.showGameOver();
+    if (game.status == core.GameStatus.over) _openGameOver();
   }
 
   // ---- game lifecycle ----
@@ -204,7 +204,17 @@ class AppController extends ChangeNotifier
   void requestPause() => navigator.showPause();
 
   @override
-  void onGameOver() => navigator.showGameOver();
+  void onGameOver() => _openGameOver();
+
+  /// Design 6.1: with no continue left the sheet's final state is reached
+  /// directly, and it needs the result `finishGame` writes.
+  void _openGameOver() {
+    if (continueAvailable) {
+      navigator.showGameOver();
+      return;
+    }
+    unawaited(finishGame().then((_) => navigator.showGameOver()));
+  }
 
   // ---- reroll (design 6) ----
 
