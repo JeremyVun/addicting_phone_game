@@ -46,7 +46,7 @@ class Harness {
         ads: ads,
         purchases: purchases,
         analytics: analytics,
-        notifications: const NoopNotifications(),
+        notifications: notifications,
       ),
     )..navigator = navigator;
   }
@@ -60,6 +60,7 @@ class Harness {
     delay: const Duration(milliseconds: 1),
   );
   final RecordingAnalytics analytics = RecordingAnalytics();
+  final RecordingNotifications notifications = RecordingNotifications();
   final RecordingNavigator navigator = RecordingNavigator();
   late final AppController controller;
 
