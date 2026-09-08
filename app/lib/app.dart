@@ -219,33 +219,46 @@ class AppController extends ChangeNotifier
 
   // ---- reroll (design 6) ----
 
-  bool get canReroll =>
-      _data.savedGame != null &&
-      state.rerollsUsed < Economy.maxRerollsPerGame &&
-      state.status == core.GameStatus.playing;
+  bool get canReroll => _canReroll(_data);
+
+  static bool _canReroll(AppData data) {
+    final game = data.savedGame;
+    return game != null &&
+        game.rerollsUsed < Economy.maxRerollsPerGame &&
+        game.status == core.GameStatus.playing;
+  }
 
   Future<void> rerollWithAd() async {
     if (!canReroll) return;
     if (!await _watchRewarded(RewardedPlacement.reroll)) return;
-    await mutate((d) => d.copyWith(savedGame: core.Game.reroll(d.savedGame!)));
+    await mutate(
+      (d) => _canReroll(d)
+          ? d.copyWith(savedGame: core.Game.reroll(d.savedGame!))
+          : d,
+    );
   }
 
   Future<void> rerollWithCoins() async {
     if (!canReroll || coins < Economy.rerollCost) return;
-    await mutate(
-      (d) => d.copyWith(
+    await mutate((d) {
+      if (!_canReroll(d) || d.profile.coins < Economy.rerollCost) return d;
+      return d.copyWith(
         profile: d.profile.copyWith(coins: d.profile.coins - Economy.rerollCost),
         savedGame: core.Game.reroll(d.savedGame!),
-      ),
-    );
+      );
+    });
   }
 
   // ---- continue and game over (design 6.1) ----
 
-  bool get continueAvailable =>
-      _data.savedGame != null &&
-      state.status == core.GameStatus.over &&
-      state.continuesUsed < Economy.maxContinuesPerGame;
+  bool get continueAvailable => _continueAvailable(_data);
+
+  static bool _continueAvailable(AppData data) {
+    final game = data.savedGame;
+    return game != null &&
+        game.status == core.GameStatus.over &&
+        game.continuesUsed < Economy.maxContinuesPerGame;
+  }
 
   ContinuePayment get continuePayment => profile.adFree
       ? ContinuePayment.free
@@ -261,7 +274,9 @@ class AppController extends ChangeNotifier
 
   Future<void> continueGame() async {
     if (!continueAvailable) return;
-    switch (continuePayment) {
+    // The ad clears itself at show time, so the price is fixed before it runs.
+    final payment = continuePayment;
+    switch (payment) {
       case ContinuePayment.free:
         break;
       case ContinuePayment.rewarded:
@@ -272,15 +287,23 @@ class AppController extends ChangeNotifier
           return;
         }
     }
-    final payWithCoins = continuePayment == ContinuePayment.coins;
-    await mutate(
-      (d) => d.copyWith(
-        profile: payWithCoins
-            ? d.profile.copyWith(coins: d.profile.coins - Economy.continueCost)
-            : d.profile,
-        savedGame: core.Game.continueGame(d.savedGame!),
-      ),
-    );
+    final granted = await mutateWith<bool>((d) {
+      final payWithCoins = payment == ContinuePayment.coins;
+      if (!_continueAvailable(d) ||
+          (payWithCoins && d.profile.coins < Economy.continueCost)) {
+        return (data: d, result: false);
+      }
+      return (
+        data: d.copyWith(
+          profile: payWithCoins
+              ? d.profile.copyWith(coins: d.profile.coins - Economy.continueCost)
+              : d.profile,
+          savedGame: core.Game.continueGame(d.savedGame!),
+        ),
+        result: true,
+      );
+    });
+    if (!granted) return;
     _markResumed(_data.savedGame!);
     navigator.dismissSheet();
     navigator.goPlay();
