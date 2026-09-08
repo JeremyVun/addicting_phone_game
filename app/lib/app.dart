@@ -298,6 +298,22 @@ class AppController extends ChangeNotifier
     return result;
   }
 
+  bool get doubleCoinsAvailable =>
+      services.ads.isRewardedReady(RewardedPlacement.doubleCoins);
+
+  /// The best to show beside a finished game: `finishGame` has already folded
+  /// this score into the profile, so the profile is the answer.
+  int bestScoreFor(LastGameResult result) => result.mode == GameMode.daily
+      ? (profile.dailyBest[result.dayOrdinal] ?? result.score)
+      : profile.bestClassic;
+
+  bool get lastResultIsNewBest {
+    final result = _data.lastResult;
+    return result != null &&
+        result.score > 0 &&
+        bestScoreFor(result) == result.score;
+  }
+
   Future<void> doubleCoins() async {
     final result = _data.lastResult;
     if (result == null || result.doubled) return;

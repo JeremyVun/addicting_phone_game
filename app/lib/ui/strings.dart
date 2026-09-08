@@ -1,6 +1,7 @@
 // Every player-facing string. Drafted by Codex (gpt-5.6-sol) on 2026-09-08 under the
 // user-facing-copy rules; edit here only, never inline in widgets.
 abstract final class S {
+  static const String appName = 'Settle';
   static const String homePlay = 'Play';
   static const String homeDailyTitle = 'Daily';
   static const String homeDailyNotPlayed = 'Not played today';
@@ -113,4 +114,6 @@ abstract final class S {
   static const String commonCancel = 'Cancel';
   static const String commonClose = 'Close';
   static String levelLabel(Object level) => 'Level $level';
+  static const String comingSoon = 'Coming soon';
+  static const String standInPlayBanner = 'Stand-in play screen';
 }
