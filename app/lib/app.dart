@@ -250,7 +250,10 @@ class AppController extends ChangeNotifier
 
   Future<void> continueGame() async {
     if (!continueAvailable) return;
-    switch (continuePayment) {
+    // Showing the ad consumes it, so re-reading `continuePayment` after the
+    // await would charge the coins as well.
+    final payment = continuePayment;
+    switch (payment) {
       case ContinuePayment.free:
         break;
       case ContinuePayment.rewarded:
@@ -261,7 +264,7 @@ class AppController extends ChangeNotifier
           return;
         }
     }
-    final payWithCoins = continuePayment == ContinuePayment.coins;
+    final payWithCoins = payment == ContinuePayment.coins;
     await mutate(
       (d) => d.copyWith(
         profile: payWithCoins

@@ -47,6 +47,23 @@ void main() {
     expect(harness.controller.continueAvailable, isFalse);
   });
 
+  test('a rewarded continue never also charges the coins', () async {
+    final harness = Harness(now: now);
+    harness.ads.consumesOnShow = true;
+    await harness.start();
+    await harness.controller.mutate(
+      (d) => d.copyWith(profile: d.profile.copyWith(coins: 400)),
+    );
+    await harness.controller.startClassic();
+    await playToGameOver(harness.controller);
+
+    expect(harness.controller.continuePriceLabel, 'Watch an ad');
+    await harness.controller.continueGame();
+
+    expect(harness.controller.profile.coins, 400);
+    expect(harness.controller.state.continuesUsed, 1);
+  });
+
   test('continue is free for an ad-free buyer', () async {
     final harness = Harness(now: now);
     await harness.start();
