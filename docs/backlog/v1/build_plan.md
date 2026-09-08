@@ -192,7 +192,7 @@ probes as its acceptance suite. Done marker: `- [x] phase 7`.
 
 - [x] phase 0
 - [ ] phase 1
-- [ ] phase 2a
+- [x] phase 2a — exemplar `assets/exemplar/play-mid-drag.png` (+4 frames), verdict in `docs/styles.md`
 - [ ] phase 2b
 - [ ] phase 3a
 - [ ] phase 3b

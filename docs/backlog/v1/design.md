@@ -515,7 +515,10 @@ real ads service uses Google's test unit ids.
   chip, big Play button, Daily card (today's status, streak, attempt left),
   Themes and Shop entries, achievements entry.
 - **Play** (Flame `GameWidget` with Flutter overlays): HUD (score, best,
-  combo banner), 8x8 grid, tray with three pieces, reroll button, pause.
+  combo in the gutter, pause icon top right), 8x8 grid in its well, a
+  fixed-height band holding the reroll pill (right) and the first-game
+  hint (centre), tray with three pieces. Pause opens a sheet with Resume,
+  Home, sound and haptics.
 - **Game over sheet**: the two states of 6.1. Continue offer: score, best,
   Continue (rewarded/coins/free), End game. Final: score, best (with "New
   best" state), coins earned, level progress, Double coins (rewarded), Play
@@ -534,12 +537,14 @@ bottom sheets. Back from Play pauses.
 
 ### 9.2 Drag and drop
 A tray piece is picked up on touch-down. While dragging it renders at full
-grid scale, offset 64 px above the finger so the thumb never hides it. The
-target cell is the grid cell under the piece's top-left cell after rounding;
-a ghost of the piece shows on the grid in the piece colour at 40% opacity
-when the placement is legal, and cells that would complete a line are
-highlighted at 70%. Release with a legal target places the piece; release
-elsewhere flies the piece back to the tray in 200 ms.
+grid scale, offset 64 px above the finger so the thumb never hides it,
+with the "held" treatment of `styles.md` (drop shadow and light rim). The
+target cell is the grid cell under the piece's top-left cell after
+rounding; when the placement is legal the target cells show the ghost
+treatment (18% fill plus a full-colour ring) and every cell of any line
+the placement would complete shows the line-imminent ring. Release with a
+legal target places the piece; release elsewhere flies the piece back to
+the tray in 200 ms.
 
 ### 9.3 Timings
 | moment | animation |
@@ -565,11 +570,12 @@ music in v1. Played through `flame_audio` `AudioPool`s preloaded at Play
 screen start.
 
 ### 9.5 Visual direction
-Decided by a design-comps round before the Play screen is built (build plan
-phase 2a). Frozen inputs to the comps: 8x8 grid, three-piece tray under the
-grid, HUD above, dark default theme, blocks read as solid rounded tiles,
-type is one bundled OFL font. The comp verdict and exemplar image live in
-`docs/styles.md` and `assets/exemplar/`.
+Ruled 2026-09-08 from the round-1 comps: concept "Well" with the transplants
+and the extra controls recorded in `docs/styles.md`, which is the binding
+visual authority (palette with measured contrast, geometry, type ladder,
+tile-state invariants). Exemplar frames are in `assets/exemplar/`. Where
+this document and `styles.md` disagree on a visual matter, `styles.md`
+wins.
 
 ## 10. First-session flow
 
