@@ -57,10 +57,11 @@ class OneShotAds implements AdsService {
 }
 
 class ThrowingStorage implements Storage {
-  ThrowingStorage(this.inner, {required this.failFromWrite});
+  ThrowingStorage(this.inner, {this.failFromWrite = -1, this.failWhen});
 
   final MemoryStorage inner;
   int failFromWrite;
+  bool Function(AppData)? failWhen;
   int writes = 0;
 
   @override
@@ -69,7 +70,10 @@ class ThrowingStorage implements Storage {
   @override
   Future<void> save(AppData data) async {
     writes += 1;
-    if (writes >= failFromWrite) throw StateError('disk full');
+    if ((failFromWrite >= 0 && writes >= failFromWrite) ||
+        (failWhen?.call(data) ?? false)) {
+      throw StateError('disk full');
+    }
     await inner.save(data);
   }
 }
