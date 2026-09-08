@@ -202,8 +202,8 @@ probes as its acceptance suite. Done marker: `- [x] phase 7`.
 - [x] phase 1 — 66 tests; offset 1.6; greedy 32/56/89 placements (score 222/502/916), smart 119/215/400 (1325/2967/5677), random 11/17/26 ungated; dots 10.0% at p=0.5; assist rate(A) 0.789 vs rate(B) 0.775
 - [x] phase 2a — exemplar `assets/exemplar/play-mid-drag.png` (+4 frames), verdict in `docs/styles.md`
 - [x] phase 2b — play (Flame, 9 widget tests, device shots vs exemplar, `tools/emu.sh`, `docs/contracts/visual.md`) and shell (mutation queue, envelope, Home, sheets, `docs/contracts/app-shell.md`) merged and integrated 2026-09-09; 244 tests
-- [ ] phase 3a
-- [ ] phase 3b
+- [x] phase 3a — 129 tests, mutation-checked; `docs/contracts/economy.md`
+- [x] phase 3b — daily mode, streak/reward/themes/achievements screens, real reminder posted on device; `docs/contracts/meta-screens.md`; 271 tests after merge
 - [ ] phase 4
 - [ ] phase 5
 - [ ] phase 6 — tooling done 2026-09-08 (`tools/release.sh`, signing, R8, icon, splash, `docs/store/checklist.md`); the verification wave remains

@@ -289,3 +289,5 @@ of the persisted envelope.
 
 Every one of these was verified to bite by breaking its guard in the source
 and watching the suite fail.
+
+`Economy.reminderPromptAfterGames = 2` (design 10): the reminder permission prompt is armed by the finish that makes `gamesCompleted` equal this value, and offered from Home once.
