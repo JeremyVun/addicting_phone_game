@@ -6,13 +6,13 @@ double _lin(int c) {
   return s <= 0.04045 ? s / 12.92 : math.pow((s + 0.055) / 1.055, 2.4).toDouble();
 }
 
-double _luminance(Color c) =>
+double luminance(Color c) =>
     0.2126 * _lin((c.r * 255).round()) +
     0.7152 * _lin((c.g * 255).round()) +
     0.0722 * _lin((c.b * 255).round());
 
 double contrast(Color a, Color b) {
-  final la = _luminance(a), lb = _luminance(b);
+  final la = luminance(a), lb = luminance(b);
   final hi = math.max(la, lb), lo = math.min(la, lb);
   return (hi + 0.05) / (lo + 0.05);
 }
