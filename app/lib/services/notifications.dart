@@ -57,7 +57,7 @@ class LocalNotificationsService implements NotificationsService {
     tz.setLocalLocation(tz.getLocation(zone.identifier));
     await _plugin.initialize(
       settings: const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        android: AndroidInitializationSettings('ic_notification'),
       ),
     );
     await _android?.createNotificationChannel(
