@@ -77,11 +77,15 @@ class GreedyBot extends Bot {
 }
 
 class GameRecord {
-  GameRecord(this.score, this.placements, this.setsGenerated, this.sets);
+  GameRecord(this.score, this.placements, this.setsGenerated, this.sets,
+      this.censored);
 
   final int score;
   final int placements;
   final int setsGenerated;
+
+  /// True when the game hit the placement cap instead of ending.
+  final bool censored;
 
   /// One entry per set returned by the director, board and pressure as they
   /// were at generation time (design 5.6).
@@ -96,7 +100,13 @@ class GeneratedSet {
   final bool assisted;
 }
 
-GameRecord playGame(Bot bot, int seed, double skill, {bool restricted = false}) {
+GameRecord playGame(
+  Bot bot,
+  int seed,
+  double skill, {
+  bool restricted = false,
+  int maxPlacements = 1 << 30,
+}) {
   final botRng = Rng(seed ^ 0x5deece66d);
   var state = Game.newGame(
     mode: GameMode.classic,
@@ -108,7 +118,7 @@ GameRecord playGame(Bot bot, int seed, double skill, {bool restricted = false}) 
     GeneratedSet(state.board.fill, _currentPressure(state), _assisted(state)),
   ];
   var placements = 0;
-  while (!state.isOver) {
+  while (!state.isOver && placements < maxPlacements) {
     final move = bot.choose(state, botRng);
     if (move == null) break;
     final result = Game.place(state, move.slot, move.row, move.col);
@@ -119,7 +129,8 @@ GameRecord playGame(Bot bot, int seed, double skill, {bool restricted = false}) 
           state.board.fill, _currentPressure(state), _assisted(state)));
     }
   }
-  return GameRecord(state.score, placements, state.setsGenerated, sets);
+  return GameRecord(
+      state.score, placements, state.setsGenerated, sets, !state.isOver);
 }
 
 double _currentPressure(GameState state) => Game.pressureFor(
