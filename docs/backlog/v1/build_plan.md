@@ -60,6 +60,14 @@ Done marker: `- [x] phase 2a` with the exemplar path.
 
 ## Phase 2b — play screen (Flame) and app shell
 
+Split 2026-09-08 into 2b-play (Flame play screen, palettes, typography,
+audio, haptics, `tools/emu.sh`, a dev harness entry point; started from
+main right after phase 1 merged) and 2b-shell (AppController with the
+mutation queue, storage envelope, bootstrap and service interfaces with
+fakes, Home, game over and pause sheets; started after phase 3a merged).
+The seam between them is `app/lib/ui/play/play_host.dart` (`PlayHost`),
+owned by 2b-play and implemented by 2b-shell in `AppController`.
+
 Base: phase 1 branch. Owns: `app/lib/ui/**` except shop, themes, settings,
 achievements screens; `app/lib/app.dart`, `app/lib/main.dart`,
 `app/lib/bootstrap.dart` (created here with fakes, owned by phase 4 after),
