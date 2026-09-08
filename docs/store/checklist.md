@@ -123,3 +123,11 @@ testers under Setup > License testing.
 `versionCode` must strictly increase and Play permanently rejects one it has
 already seen, including from a deleted draft. Bump with
 `tools/release.sh version <x.y.z> <code>`.
+
+## After every store build
+
+- `tools/release.sh bundle` obfuscates Dart code and writes the symbol
+  files to `app/build/symbols/<version>/`. Archive that folder with the
+  uploaded bundle; without it, crash stack traces from production cannot
+  be read.
+- The upload keystore is PKCS12 (converted 2026-09-08 before first use).

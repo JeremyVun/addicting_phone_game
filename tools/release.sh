@@ -43,7 +43,7 @@ cmd_keystore() {
 
   keytool -genkeypair -v \
     -keystore "$keystore" \
-    -storetype JKS \
+    -storetype PKCS12 \
     -keyalg RSA -keysize 2048 -validity 10000 \
     -alias "$key_alias" \
     -dname "CN=Settle, OU=Perch, O=Perch, L=Unknown, ST=Unknown, C=AU" \
@@ -90,18 +90,22 @@ warn_unsigned() {
   echo "warning: no $key_properties -- building with the debug key. Not uploadable to Play." >&2
 }
 
+symbols_dir="$app_dir/build/symbols/$(grep '^version:' "$app_dir/pubspec.yaml" | awk '{print $2}')"
+
 cmd_apk() {
   assert_no_test_ads
   warn_unsigned
-  (cd "$app_dir" && flutter build apk --release)
+  (cd "$app_dir" && flutter build apk --release --obfuscate --split-debug-info="$symbols_dir")
   echo "apk: $app_dir/build/app/outputs/flutter-apk/app-release.apk"
+  echo "symbols: $symbols_dir (archive with the upload; needed to read production stack traces)"
 }
 
 cmd_bundle() {
   assert_no_test_ads
   warn_unsigned
-  (cd "$app_dir" && flutter build appbundle --release)
+  (cd "$app_dir" && flutter build appbundle --release --obfuscate --split-debug-info="$symbols_dir")
   echo "bundle: $app_dir/build/app/outputs/bundle/release/app-release.aab"
+  echo "symbols: $symbols_dir (archive with the upload; needed to read production stack traces)"
 }
 
 cmd_install() {
