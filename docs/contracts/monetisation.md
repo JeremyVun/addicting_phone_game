@@ -196,23 +196,40 @@ outage on the emulator.
 | user cancels | synthetic empty-`productID` update; completed if pending, otherwise ignored |
 | analytics endpoint down | events dropped, nothing blocks or throws |
 
-## 9. Not yet verified on a device
+## 9. Verified on device 2026-09-09
 
-Everything above is verified by `tools/check.sh` (analyze clean, 297 tests).
-The emulator drive of phase 4 did **not** run: this machine held three to four
-other sessions' emulators for the whole window and booting a fifth was refused
-on the memory rule in `CLAUDE.md`. Outstanding device checks, in order:
+`tools/check.sh`: analyze clean, 327 tests. The phase 4 emulator drive finally
+ran on `emulator-5554` (Google Play system image, API 36, 1024x2216), against a
+debug `android-arm64` build and then the `--allow-test-ads` release APK.
 
-1. the UMP consent form, forced with `--dart-define=SETTLE_FORCE_EEA=true` on a
-   Google Play system image;
-2. a rewarded test ad playing and the continue then being granted on the game
-   over sheet;
-3. an interstitial actually displayed;
-4. the shop in its unavailable state (no Play products exist yet) and, with
-   `--dart-define=SETTLE_FAKE_SERVICES=true`, with fake products and a
-   completed fake purchase;
-5. the settings screen.
+| check | result |
+| --- | --- |
+| UMP consent form, `--dart-define=SETTLE_FORCE_EEA=true` | shown, consented, form dismissed and ads then loaded |
+| rewarded test ad -> continue granted | ad played, `onUserEarnedReward` fired, the three fullest rows cleared and play resumed with the score kept |
+| interstitial displayed | shown from `playAgain` with every 8.2 condition met, and from the throwaway debug trigger |
+| interstitial counters | `gamesSinceInterstitial` 3 -> 0 and `lastInterstitialClosedAt` stamped in the persisted envelope |
+| shop, real Play service | `S.shopUnavailable` ("The store can't be reached right now.") with Restore purchases still offered; log line `purchases: store unavailable` |
+| shop, `SETTLE_FAKE_SERVICES=true` | five products in catalogue order with prices; buying `coins_small` moved the balance 0 -> 500 |
+| settings after EEA consent | Privacy options row present |
+| release build with placeholder ad ids | no ads load, and the continue button falls back to "Use 150 coins" as design 8.1 says |
 
-For 2 and 3, re-add the two throwaway `ShopFlows` methods and their `kDebugMode`
-settings rows from commit `168b1db` (removed again in `d6973f4`), or reach game
-over with `tools/emu.sh drag`.
+The consent form is **not** a gate on the first frame: Home draws first and the
+form appears on top of it about ten seconds later, once
+`loadAndShowConsentFormIfRequired` resolves. Design 10 reads as though the form
+precedes Home; on this device it does not.
+
+Two defects were found by this drive and fixed here:
+
+1. `continueGame` re-read `continuePayment` *after* awaiting the rewarded ad.
+   Showing the ad consumes it, so the second read returned `coins` and charged
+   150 on top of the ad, with no balance check -- the emulator profile went to
+   **-150 coins**. Fixed by capturing the payment before paying.
+2. A game over reached with `continuesUsed == 1` rendered an empty sheet: the
+   final state needs a `lastResult` and nothing called `finishGame()`. The
+   player was stranded on a dead dimmed board, and the state survived a
+   relaunch. `onGameOver` (and the launch resume) now finish the game first.
+
+Not verified, and still cannot be from this machine: a real (non-test) ad fill,
+any real Play purchase, and `restore` of a real non-consumable. All three need
+the Play Console products of section 7 and an internal-testing track.
+

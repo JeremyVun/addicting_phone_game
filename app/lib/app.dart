@@ -80,7 +80,8 @@ class AppController extends ChangeNotifier
     unawaited(
       mutate(fn).then<void>(
         (_) {},
-        onError: (Object error) => debugPrint('settle: envelope write failed: $error'),
+        onError: (Object error) =>
+            debugPrint('settle: envelope write failed: $error'),
       ),
     );
   }
@@ -129,7 +130,7 @@ class AppController extends ChangeNotifier
     final game = _data.savedGame;
     if (game == null) return;
     navigator.goPlay();
-    if (game.status == core.GameStatus.over) navigator.showGameOver();
+    if (game.status == core.GameStatus.over) _openGameOver();
   }
 
   // ---- game lifecycle ----
@@ -215,7 +216,17 @@ class AppController extends ChangeNotifier
   void requestPause() => navigator.showPause();
 
   @override
-  void onGameOver() => navigator.showGameOver();
+  void onGameOver() => _openGameOver();
+
+  /// Design 6.1: with no continue left the sheet's final state is reached
+  /// directly, and it needs the result `finishGame` writes.
+  void _openGameOver() {
+    if (continueAvailable) {
+      navigator.showGameOver();
+      return;
+    }
+    unawaited(finishGame().then((_) => navigator.showGameOver()));
+  }
 
   // ---- reroll (design 6) ----
 
@@ -243,7 +254,9 @@ class AppController extends ChangeNotifier
     await mutate((d) {
       if (!_canReroll(d) || d.profile.coins < Economy.rerollCost) return d;
       return d.copyWith(
-        profile: d.profile.copyWith(coins: d.profile.coins - Economy.rerollCost),
+        profile: d.profile.copyWith(
+          coins: d.profile.coins - Economy.rerollCost,
+        ),
         savedGame: core.Game.reroll(d.savedGame!),
       );
     });
@@ -296,7 +309,9 @@ class AppController extends ChangeNotifier
       return (
         data: d.copyWith(
           profile: payWithCoins
-              ? d.profile.copyWith(coins: d.profile.coins - Economy.continueCost)
+              ? d.profile.copyWith(
+                  coins: d.profile.coins - Economy.continueCost,
+                )
               : d.profile,
           savedGame: core.Game.continueGame(d.savedGame!),
         ),
@@ -316,7 +331,9 @@ class AppController extends ChangeNotifier
     if (game == null) return _data.lastResult;
     _finishedGame = game;
     final summary = GameSummary(
-      mode: game.mode == core.GameMode.daily ? GameMode.daily : GameMode.classic,
+      mode: game.mode == core.GameMode.daily
+          ? GameMode.daily
+          : GameMode.classic,
       gameId: game.id,
       score: game.score,
       placements: game.placements,
@@ -327,7 +344,11 @@ class AppController extends ChangeNotifier
       dayOrdinal: game.dayOrdinal,
     );
     final result = await mutateWith<LastGameResult?>((d) {
-      final outcome = Progression.finish(d.profile, summary, services.clock.now());
+      final outcome = Progression.finish(
+        d.profile,
+        summary,
+        services.clock.now(),
+      );
       final result = outcome.result ?? d.lastResult;
       return (
         data: AppData(
@@ -387,10 +408,7 @@ class AppController extends ChangeNotifier
           loaded: services.ads.isInterstitialReady,
           now: services.clock.now(),
         );
-    if (shouldShow) {
-      await services.ads.showInterstitial();
-      services.analytics.count('interstitial_shown');
-    }
+    if (shouldShow) await services.ads.showInterstitial();
     await mutate(
       (d) => AppData(
         profile: d.profile,
@@ -422,48 +440,63 @@ class AppController extends ChangeNotifier
   Future<void> setSound(bool on) =>
       mutate((d) => d.copyWith(profile: d.profile.copyWith(soundEnabled: on)));
 
-  Future<void> setHaptics(bool on) =>
-      mutate((d) => d.copyWith(profile: d.profile.copyWith(hapticsEnabled: on)));
+  Future<void> setHaptics(bool on) => mutate(
+    (d) => d.copyWith(profile: d.profile.copyWith(hapticsEnabled: on)),
+  );
 
   // ---- AdSink (design 8.2) ----
 
   @override
-  void onInterstitialShown() => mutateInBackground(
-    (d) => d.copyWith(
-      profile: InterstitialPolicy.afterInterstitialShown(d.profile, services.clock.now()),
-    ),
-  );
+  void onInterstitialShown() {
+    services.analytics.count('interstitial_shown');
+    mutateInBackground(
+      (d) => d.copyWith(
+        profile: InterstitialPolicy.afterInterstitialShown(
+          d.profile,
+          services.clock.now(),
+        ),
+      ),
+    );
+  }
 
   @override
   void onInterstitialClosed() => mutateInBackground(
     (d) => d.copyWith(
-      profile: InterstitialPolicy.afterInterstitialClosed(d.profile, services.clock.now()),
+      profile: InterstitialPolicy.afterInterstitialClosed(
+        d.profile,
+        services.clock.now(),
+      ),
     ),
   );
 
   @override
   void onRewardedShown() => mutateInBackground(
     (d) => d.copyWith(
-      profile: InterstitialPolicy.afterRewardedShown(d.profile, services.clock.now()),
+      profile: InterstitialPolicy.afterRewardedShown(
+        d.profile,
+        services.clock.now(),
+      ),
     ),
   );
 
   @override
   void onRewardedClosed() => mutateInBackground(
     (d) => d.copyWith(
-      profile: InterstitialPolicy.afterRewardedClosed(d.profile, services.clock.now()),
+      profile: InterstitialPolicy.afterRewardedClosed(
+        d.profile,
+        services.clock.now(),
+      ),
     ),
   );
 
   // ---- PurchaseSink (design 8.3) ----
 
   @override
-  Future<void> applyPurchase(String productId, String purchaseToken) =>
-      mutate(
-        (d) => d.copyWith(
-          profile: Purchases.grant(d.profile, productId, purchaseToken),
-        ),
-      );
+  Future<void> applyPurchase(String productId, String purchaseToken) => mutate(
+    (d) => d.copyWith(
+      profile: Purchases.grant(d.profile, productId, purchaseToken),
+    ),
+  );
 
   @override
   Future<void> purchaseCompleted(String purchaseToken) => mutate(
@@ -473,11 +506,15 @@ class AppController extends ChangeNotifier
   );
 
   @override
-  void purchasePending(String productId) {}
+  void purchasePending(String productId) => shop.markPending(productId);
 
   @override
-  void purchaseFailed(String productId) =>
-      navigator.showMessage(S.shopPurchaseFailed);
+  void purchaseFailed(String productId) {
+    shop
+      ..clearPending(productId)
+      ..showMessage(S.shopPurchaseFailed);
+    navigator.showMessage(S.shopPurchaseFailed);
+  }
 
   // ---- helpers ----
 

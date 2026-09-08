@@ -44,6 +44,8 @@ class FakeAdsService implements AdsService {
   bool rewardedReady;
   bool interstitialReady;
   bool grantsReward;
+  bool showFails = false;
+  bool consumesOnShow = false;
 
   final List<RewardedPlacement> rewardedShows = [];
   int interstitialShows = 0;
@@ -59,9 +61,11 @@ class FakeAdsService implements AdsService {
   Future<bool> showRewarded(RewardedPlacement placement) async {
     if (!rewardedReady) return false;
     rewardedShows.add(placement);
+    if (showFails) return false;
     _sink?.onRewardedShown();
     await Future<void>.delayed(showDuration);
     _sink?.onRewardedClosed();
+    if (consumesOnShow) rewardedReady = false;
     return grantsReward;
   }
 
@@ -72,6 +76,7 @@ class FakeAdsService implements AdsService {
   Future<void> showInterstitial() async {
     if (!interstitialReady) return;
     interstitialShows += 1;
+    if (showFails) return;
     _sink?.onInterstitialShown();
     await Future<void>.delayed(showDuration);
     _sink?.onInterstitialClosed();

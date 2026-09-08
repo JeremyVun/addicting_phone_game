@@ -106,9 +106,12 @@ testers under Setup > License testing.
 - Icon: `assets/store/icon-1024.png` (Play wants 512x512 32-bit PNG with alpha,
   max 1024 KB — resize on upload).
 - Feature graphic: `assets/store/feature-1024x500.png` (24-bit PNG, no alpha).
-- Screenshots from `tools/emu.sh shot` (being built separately). Minimum 2 to
-  publish, 4+ at 1080px minimum for promotion eligibility. They must show the
-  real puzzle — misleading screenshots are a common takedown cause.
+- Screenshots: six 9:16 shots are in **`assets/store/screenshots/`**
+  (1246x2216), captured from the release build on the emulator and
+  letterboxed onto the theme ground colour. Upload them as they are.
+  They show a level-1 profile, because they were shot on a fresh install;
+  reshoot 01-home from a played-in profile if you want a higher level and
+  streak on the store page.
 
 ## 9. Release
 
@@ -131,3 +134,27 @@ already seen, including from a deleted draft. Bump with
   uploaded bundle; without it, crash stack traces from production cannot
   be read.
 - The upload keystore is PKCS12 (converted 2026-09-08 before first use).
+
+## Verified on the emulator, 2026-09-09
+
+Done by the phase 6 wave on `emulator-5554`, so you do not need to repeat it:
+the UMP consent form, a rewarded ad granting the continue, an interstitial
+under the design 8.2 policy, the shop's unavailable state, a fake purchase, and
+a release APK (`tools/release.sh apk --allow-test-ads`) running a full
+fresh-install session with no Flutter or plugin errors in logcat.
+
+What is still on you, and cannot be checked without the Play Console:
+
+1. Real ad fill. Until `ad_ids.dart` and the manifest carry real ids the
+   release build is deliberately ad-free — on the emulator the continue button
+   correctly showed "Use 150 coins" instead of "Watch an ad". Re-check that the
+   button offers the ad once the real ids are in.
+2. Real purchases. A sideloaded APK gets an empty product list; the shop shows
+   "The store can't be reached right now." That is the correct behaviour, not a
+   bug, but it means the buy, consume and restore paths are only exercisable
+   from an internal-testing track with the five products **active**.
+3. `kPrivacyPolicyUrl` in `app/lib/config.dart` is still `https://REPLACE_ME/…`.
+   The Settings row opens it, so it must be a real URL before any track.
+4. Debug builds request audio focus per sound effect, which logs
+   `E AppOps: attributionTag not declared in manifest`. It is system-side noise
+   with no user effect; ignore it in Vitals triage.
