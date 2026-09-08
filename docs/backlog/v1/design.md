@@ -214,8 +214,10 @@ an unfit set is possible by design; the mercy step and the 30 retries make
 it rare.
 
 ### 5.5 First game ever
-A classic game started while `profile.gamesCompleted == 0` is created
-with `restricted = true`. In a restricted game, while `setsGenerated < 3`
+A classic game started while the profile has no completed **classic**
+game (`profile.classicGamesCompleted == 0`; daily games do not count,
+ruled 2026-09-09) is created with `restricted = true`. The two hint lines
+follow the same rule. In a restricted game, while `setsGenerated < 3`
 the catalogue is limited to {dot, i2, i3, o2, l3, l4, t4} and `p = 0`.
 Daily games are never restricted and always use `skill = 0.5`, so the
 daily sequence is identical for every player. Nothing else is persisted
@@ -250,8 +252,11 @@ tune the constants in 5.2–5.4 and record the change here.
 ## 6. Continue and reroll
 
 - **Continue** (`continueGame` placement): offered once per game on the game
-  over sheet (section 6.1). Clears the three rows with the most filled
-  cells (ties: topmost), discards the current set, generates a fresh
+  over sheet (section 6.1). Removes every block in the three rows with the
+  most filled cells (ties: topmost); this is a demolition of occupied
+  cells, not a line clear: it awards no points, does not touch the combo,
+  and the result lists only the cells that held a block (ruled
+  2026-09-09). It then discards the current set, generates a fresh
   three-piece set with `p = 0`, and play resumes with the same score,
   combo and `setsGenerated`. Paid by one rewarded ad, or by 150 coins.
   Ad-free buyers get it free once per game.
@@ -375,7 +380,10 @@ freezesHeld`, `missed` freezes are consumed and the streak is kept. If
 A streak of 0 is never defended: freezes are consumed only while `streak >
 0`. In both of the last two cases `streakReconciledOrdinal = today - 1`,
 so a gap is charged exactly once and a later launch on the same day is a
-no-op. Completing today's daily compares against the same anchor
+no-op. A device clock moved backwards never destroys a streak (ruled
+2026-09-09): a daily cannot be started for an ordinal below
+`lastCompletedOrdinal`, and a completion whose ordinal is below it
+leaves the streak, the anchor and the reconciliation marker unchanged. Completing today's daily compares against the same anchor
 (`max(lastCompletedOrdinal, streakReconciledOrdinal)`), sets
 `lastCompletedOrdinal = today` and increments the streak (from 0 after a
 reset). Freezes cost
