@@ -8,6 +8,7 @@ abstract final class S {
   static String homeDailyDone(Object score) => 'Today’s score: $score';
   static const String homeDailySecondAttemptAvailable =
       'One more try is available';
+  static const String homeDailyInProgress = 'In progress';
   static const String homeStreakLabel = 'Day streak';
   static const String homeThemes = 'Themes';
   static const String homeShop = 'Shop';
@@ -47,6 +48,8 @@ abstract final class S {
   static const String dailyTitle = 'Daily puzzle';
   static String dailyDay(Object day) => 'Puzzle $day';
   static const String dailyBestToday = 'Best today';
+  static const String dailyStreakToday = 'Streak';
+  static String dailyStreakIncrement(Object n) => '+$n today';
   static const String dailyShare = 'Share';
   static const String dailySecondAttempt = 'Try again';
   static const String dailySecondAttemptSub =
@@ -64,6 +67,7 @@ abstract final class S {
   static String streakBuyFreeze(Object coins) => 'Buy for $coins coins';
   static const String streakNotEnough = 'Not enough coins';
   static const String streakGetCoins = 'Get coins';
+  static const String streakFreezesHeld = 'Freezes';
   static const String rerollTitle = 'New blocks';
   static const String rerollSub = 'Replaces the blocks you have not placed.';
   static const String rerollWatchAd = 'Watch an ad';
@@ -110,6 +114,11 @@ abstract final class S {
       'Get a reminder when the daily puzzle is ready.';
   static const String notifyAllow = 'Allow';
   static const String notifyNotNow = 'Not now';
+  static const String notifyChannelName = 'Daily puzzle';
+  static const String notifyChannelDescription =
+      'Tells you when the daily puzzle is ready.';
+  static const String reminderTitle = 'Daily puzzle ready';
+  static const String reminderBody = 'Today\u2019s puzzle is ready to play.';
   static const String commonOk = 'OK';
   static const String commonCancel = 'Cancel';
   static const String commonClose = 'Close';

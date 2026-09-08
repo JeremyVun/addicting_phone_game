@@ -9,6 +9,7 @@ import '../widgets/buttons.dart';
 import '../widgets/coin_chip.dart';
 import '../widgets/format.dart';
 import '../widgets/sheet_scaffold.dart';
+import 'daily_result_sheet.dart';
 
 class GameOverSheet extends StatelessWidget {
   const GameOverSheet({super.key, required this.controller});
@@ -24,6 +25,9 @@ class GameOverSheet extends StatelessWidget {
         return _ContinueOffer(controller: controller);
       }
       if (result == null) return const SizedBox.shrink();
+      if (result.mode == GameMode.daily) {
+        return DailyResultSheet(controller: controller, result: result);
+      }
       return _FinalResult(controller: controller, result: result);
     },
   );

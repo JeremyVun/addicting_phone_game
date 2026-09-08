@@ -74,6 +74,7 @@ class WidgetNavigator implements AppNavigator {
     showModalBottomSheet<void>(
       context: context,
       useRootNavigator: true,
+      isScrollControlled: true,
       isDismissible: dismissible,
       enableDrag: dismissible,
       backgroundColor: const Color(0x00000000),
