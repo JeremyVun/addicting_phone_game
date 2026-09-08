@@ -111,11 +111,14 @@ each interstitial condition individually, DST-safe ordinal). Done marker:
 
 Base: phase 2b branch with phase 3a merged. Owns:
 `app/lib/ui/screens/themes_screen.dart`, `achievements_screen.dart`,
-`daily_result_sheet.dart`, `daily_reward_sheet.dart`, the home screen's
-streak/level/daily widgets, `app/lib/services/notifications.dart`, and the
+`daily_result_sheet.dart`, `daily_reward_sheet.dart`,
+`streak_sheet.dart`, the home screen's streak/level/daily widgets,
+`app/lib/services/notifications.dart` with its wiring in
+`app/lib/bootstrap.dart` and the manifest receivers it needs (phase 3b
+owns both files until it lands; phase 4 owns them after), and the
 `AppController` methods that call meta (`finishGame`, `doubleCoins`,
-`claimDailyReward`, `reconcileOnLaunch`, daily game start and second
-attempt).
+`claimDailyReward`, `reconcileOnLaunch`, `buyStreakFreeze`, daily game
+start and second attempt).
 
 Builds the screens of design 9.1 for meta, daily mode end to end (3, 6.1
 daily result), the notification prompt and reminder (10), and the

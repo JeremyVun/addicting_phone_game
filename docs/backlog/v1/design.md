@@ -131,13 +131,23 @@ no loss; `serialize(deserialize(x)) == x` is a test.
 All persistent app state lives in one JSON envelope, `AppData {v, profile,
 savedGame?, lastResult?}`, stored under a single `shared_preferences`
 string key and always written whole, so a write is all-or-nothing and no
-two keys can disagree after a crash. The app writes the envelope after
-every reducer mutation (place, continue, reroll, game over) and every
-profile mutation (coins, purchases, rewards, settings), awaiting the write
-before the UI acknowledges the change or a payment is consumed;
-backgrounding writes it again. Every game carries an `id` (seed and
-startedAtMs); `finishGame()` is a no-op when `profile.lastFinishedGameId`
-already equals the game's id. On launch the app resumes a saved game whose
+two keys can disagree after a crash. Every mutation of `AppData`, from
+any source (UI actions, reducer results, rewarded callbacks, the purchase
+stream, lifecycle events, `finishGame()`), runs through one serialised
+queue owned by `AppController`: `mutate(AppData Function(AppData))`
+applies the function to the latest committed state, writes the envelope,
+and completes only after the write succeeds; the next queued mutation
+starts from the committed result. Two callbacks can therefore never
+derive from the same stale state. The UI acknowledges a change, and a
+payment is consumed, only after the mutation's future completes;
+backgrounding enqueues a plain write. Every game carries an `id`
+(`"$seed-$startedAtMs"`); `finishGame()` is a no-op when
+`profile.lastFinishedGameId` already equals the game's id.
+
+Classic seed: the app (not `core`) draws a uniformly random non-negative
+32-bit int from `Random.secure()` when the game starts. The daily seed is
+the day ordinal (section 3). The seed alone reproduces a game given the
+same moves; `startedAtMs` in the id only makes ids unique. On launch the app resumes a saved game whose
 day ordinal matches today (daily) or any (classic). A resumed game cannot
 be replayed to a different outcome: the rng state is part of the save.
 
@@ -264,8 +274,9 @@ shown. The game over sheet then has two states:
    the streak with today's increment, coins earned, Double coins (as
    above), Share (a text card, section 9.1), Second attempt (rewarded,
    shown only while `profile.dailySecondAttemptUsed != dayOrdinal`; on
-   reward the flag is persisted first and then a new daily game starts
-   immediately), and Home. There is no Play again in daily. `finishGame()`
+   reward one mutation sets the flag and stores the new daily game as
+   `savedGame` in the same envelope write, then the app navigates to
+   Play), and Home. There is no Play again in daily. `finishGame()`
    records `profile.dailyBest[dayOrdinal]`, `dailyAttempts[dayOrdinal]`
    and the streak update (7.5) in the same envelope write.
 
@@ -322,7 +333,12 @@ The daily streak is the number of consecutive local days with a completed
 daily attempt. A missed day resets it to 0 unless a streak freeze is held,
 in which case one freeze is consumed and the streak is kept. Freezes cost
 200 coins, at most 2 held. The home screen shows the streak and whether a
-freeze is held.
+freeze is held; tapping the streak chip opens the **Streak sheet**: the
+current streak, freezes held (0–2), and a "Buy a freeze" button showing
+the price. The button is disabled with the player's coin balance shown
+beside it when coins are under 200 or two freezes are already held, with
+a link to the Shop in the first case. Buying runs
+`AppController.buyStreakFreeze()` as one mutation (deduct and add).
 
 ### 7.6 Skill estimate
 `skill` in [0,1], persisted. After each completed classic game:
@@ -383,10 +399,18 @@ in v1.
 
 Policy state is persisted in the profile: `gamesCompleted`,
 `gamesSinceInterstitial`, `lastInterstitialClosedAt` and
-`lastRewardedClosedAt` (epoch milliseconds, 0 when never). Elapsed time is
-`now - stored`; a negative value (clock moved back) counts as not elapsed,
-and if it is more negative than 24 h the stored value is reset to `now`.
-The counters survive restarts, so the caps cannot be reset by relaunching.
+`lastRewardedClosedAt` (epoch milliseconds, 0 when never). Transitions:
+`gamesCompleted` and `gamesSinceInterstitial` increment inside
+`finishGame()`; `gamesSinceInterstitial` resets to 0 and
+`lastInterstitialClosedAt` is set to `now` when the ad reports it was
+shown (`onAdShowedFullScreenContent`), and `lastInterstitialClosedAt` is
+set again on dismissal; a failed load or failed show changes nothing and
+the next load is retried with backoff; the same two-step rule applies to
+`lastRewardedClosedAt`. Process death during an ad therefore still counts
+it as shown. Elapsed time is `now - stored`; a negative value (clock moved
+back) counts as not elapsed, and if it is more negative than 24 h the
+stored value is reset to `now`. The counters survive restarts, so the caps
+cannot be reset by relaunching.
 
 ### 8.3 Products
 | product id | type | grants |
@@ -407,11 +431,15 @@ accepted and recorded.
 Purchase protocol (`PurchaseService`):
 1. The `purchaseStream` listener is subscribed once, at app start, before
    any screen, and lives for the process.
-2. Coin packs are bought with `autoConsume: false`. For every update in
-   state `purchased` or `restored`: if `purchaseID` is already in
-   `profile.grantedPurchases` (a capped list of the last 200 ids), skip the
-   grant and go straight to step 3. Otherwise grant (coins added, or the
-   non-consumable flag set), append the id, and await the state write.
+2. Coin packs are bought with `autoConsume: false`. The idempotency key
+   of an update is the Play purchase token,
+   `verificationData.serverVerificationData` (never `purchaseID`, which
+   Android derives from a nullable order id). An update in state
+   `purchased` or `restored` with an empty token is logged and ignored.
+   Otherwise: if the token is already in `profile.grantedPurchases` (a
+   capped list of the last 200 tokens), skip the grant and go straight to
+   step 3; else grant (coins added, or the non-consumable flag set),
+   append the token, and await the mutation.
 3. Then, whether or not the grant was new: consumables are consumed
    (`InAppPurchaseAndroidPlatformAddition.consumePurchase`) and
    non-consumables acknowledged (`completePurchase`, when
