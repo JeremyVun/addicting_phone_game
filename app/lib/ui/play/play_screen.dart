@@ -1,4 +1,5 @@
 import 'package:flame/game.dart';
+import 'package:flutter/material.dart' show Material;
 import 'package:flutter/widgets.dart';
 
 import '../../core/game_state.dart';
