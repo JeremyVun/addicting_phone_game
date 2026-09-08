@@ -82,7 +82,9 @@ Achievements (7.7): the 16 ids, names, descriptions and coin rewards are in
 4. `xp += score ~/ 10`; every level crossed is listed in `levelUps` and pays
    `50 x level`.
 5. `gamesCompleted += 1`, `gamesSinceInterstitial += 1`,
-   `lastFinishedGameId = summary.gameId`.
+   `lastFinishedGameId = summary.gameId`; classic games also
+   `classicGamesCompleted += 1` (design 5.5's first-game restriction and the
+   tray hints read that field, ruled 2026-09-09).
 6. Classic only: `bestClassic = max(...)` and
    `skill = 0.8 * skill + 0.2 * clamp(score / 4000, 0, 1)` (7.6). A daily
    game never moves `skill`.
@@ -120,12 +122,20 @@ for by `reconcile`, whether it was covered by a freeze or lost.
 | covered | `0 < missed <= freezesHeld` and `streak > 0` | unchanged | `- missed` | `today - 1` |
 | broken | `missed > freezesHeld` | **0** | unchanged | `today - 1` |
 
-`onDailyCompleted(profile, ordinal)`: the same ordinal as
-`lastCompletedOrdinal` -> unchanged (a second daily attempt never extends the
-streak); `anchor == ordinal - 1` -> `streak + 1`; anything else -> `streak =
-1`. It always sets `lastCompletedOrdinal = ordinal`. Reading the *anchor*
+`onDailyCompleted(profile, ordinal)`: `ordinal <= anchor` -> unchanged (a
+second daily attempt never extends the streak, and a device clock moved
+backwards never destroys one: streak, `lastCompletedOrdinal` and
+`streakReconciledOrdinal` all stand, ruled 2026-09-09);
+`anchor == ordinal - 1` -> `streak + 1`; anything else -> `streak = 1`. Except
+in the unchanged case it sets `lastCompletedOrdinal = ordinal`. Reading the *anchor*
 rather than `lastCompletedOrdinal` is what makes a freeze work: reconcile
 marks yesterday as kept, so today's daily continues the run.
+
+Design 7.5's companion clause — a daily cannot be *started* for an ordinal
+below `lastCompletedOrdinal` — is **not** built: the probe `a device clock
+moved backwards never destroys a streak` plays a daily on the rolled-back day,
+so the start is still allowed and only the completion is ignored. Owner call
+pending (see `docs/backlog/v1/review-findings.md`).
 
 Two rules the design left open, decided here:
 
@@ -200,13 +210,15 @@ still recorded as completed so a replayed update cannot re-grant.
 
 ## 8. JSON
 
-`PlayerProfile.toJson()` (`v: 1`). Int-keyed maps are written with string
+`PlayerProfile.toJson()` (`v: 2`; `classicGamesCompleted` is the only field
+v2 adds, and a v1 envelope reads it as `gamesCompleted` so existing testers
+keep their onboarding state). Int-keyed maps are written with string
 keys; sets are written as sorted lists.
 
 ```json
 {
-  "v": 1,
-  "coins": 0, "xp": 0, "gamesCompleted": 0,
+  "v": 2,
+  "coins": 0, "xp": 0, "gamesCompleted": 0, "classicGamesCompleted": 0,
   "bestClassic": 0, "bestDaily": 0, "skill": 0.35,
   "unlockedThemes": [1], "selectedTheme": 1,
   "achievements": [],

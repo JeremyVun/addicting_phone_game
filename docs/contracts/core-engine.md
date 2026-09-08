@@ -62,7 +62,8 @@ Immutable 8×8 value. `Board.size` 8, `Board.cellCount` 64.
 | `canPlace(piece, row, col)` | in bounds and every cell lands on empty |
 | `place(piece, row, col)` | new board; throws `ArgumentError` if illegal |
 | `fullLines()` | `FullLines(rows, cols)`, both ascending |
-| `clearLines(lines)` | `ClearResult(board, cells)`; `cells` is row-major and lists a cell in both a full row and a full column **once** |
+| `clearLines(lines)` | `ClearResult(board, cells)`; `cells` is row-major and lists a cell in both a full row and a full column **once**. Only cells that held a block are listed and counted, so `filledCount` stays true even for a line that is not full |
+| `clearRows(rows)` | design 6's continue: erases whatever occupies `rows`; `cells` lists only the cells that held a block, `filledCount` drops by exactly that many |
 | `filledCount`, `fill` (0..1), `isEmpty`, `isFull` | |
 | `placements(piece)` | all legal anchors, row-major |
 | `anyPlacement(piece)` | any legal anchor |
@@ -153,8 +154,8 @@ its state. `fromJson(toJson(s)) == s` with deep equality, rng state included.
 - `place(state, slot, row, col) -> PlacementResult` — throws `ArgumentError`
   for a bad slot, an already-played slot, an illegal target or a finished
   game. The UI is expected to call `board.canPlace` first.
-- `continueGame(state)` — design 6: clears the three rows with the most
-  filled cells (ties topmost), no points and no combo change for that clear,
+- `continueGame(state)` — design 6: demolishes the three rows with the most
+  filled cells (ties topmost) via `clearRows`, no points and no combo change,
   discards the set, generates a fresh 3-set at `p = 0`, `continuesUsed += 1`,
   status back to `playing` (or `over` if even that set does not fit).
   Throws `StateError` when a continue was already used.

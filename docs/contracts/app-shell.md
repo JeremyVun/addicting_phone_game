@@ -61,23 +61,41 @@ Future<void> get idle;                 // the queue has drained
 
 `mutate` is `mutateWith` with the new data as its own result. Each queued
 function runs against the **latest committed** `AppData`, the envelope write is
-awaited, listeners are notified, and only then does the caller's future
-complete and the next queued function start. Two callbacks can therefore never
+awaited, `_data` is replaced and listeners are notified **only after the write
+succeeds**, and only then does the caller's future complete and the next queued
+function start. A failed write therefore leaves memory and disk agreeing on the
+last committed state; the caller's future carries the error and the queue
+carries on with the next mutation. Two callbacks can therefore never
 derive from the same stale state. `idle` exists for tests and for lifecycle
 code that must wait for the disk.
 
 Every write in the app goes through this queue: UI actions, the reducer result
 of `place`, rewarded callbacks, the purchase sink, `finishGame()`.
 
+```dart
+void mutateInBackground(AppData Function(AppData) fn);
+```
+
+A mutation is either awaited or run through `mutateInBackground`, never
+`unawaited(mutate(...))`: a write behind a fire-and-forget mutation (`place`
+and the four `AdSink` transitions) fails into a log line, not an unhandled
+async error. The last committed state stands and the queue continues.
+
+Every guard that decides whether an action is affordable or allowed is
+re-evaluated **inside** the mutation that spends, against the committed data
+that mutation is handed (`Themes.buy` and `DailyRewards.claim` are the shape).
+Two unawaited taps therefore charge once, and the refused one is a no-op: no
+`StateError` from the reducer ever reaches the UI.
+
 ## 4. Game lifecycle
 
 | method | what it does |
 | --- | --- |
-| `startClassic()` | seed = `Random.secure().nextInt(1 << 32)`, `skill = profile.skill`, `restricted = profile.gamesCompleted == 0`, `startedAtMs = clock.now()`; stores it as `savedGame`, clears `lastResult`, emits `game_started`, navigates to Play |
+| `startClassic()` | seed = `Random.secure().nextInt(1 << 32)`, `skill = profile.skill`, `restricted = profile.classicGamesCompleted == 0` (design 5.5, ruled 2026-09-09: daily games do not spend the restriction, and `showFirstGameHints` reads the same field), `startedAtMs = clock.now()`; stores it as `savedGame`, clears `lastResult`, emits `game_started`, navigates to Play |
 | `place(slot, row, col)` | synchronous `Game.place`, then an unawaited queued write of the result state with the elapsed time folded in. On `gameOver` the state is already `over` and is saved by that same write; the play screen then calls `onGameOver()` |
 | `requestReroll()` / `requestPause()` | open their sheets |
 | `rerollWithAd()` / `rerollWithCoins()` | design 6: the ad path rerolls **only** from the reward, the coin path deducts 50 and rerolls in one mutation. Both refuse past `canReroll` (3 per game, game still playing) |
-| `continueGame()` | pays by `continuePayment` (free when ad-free, else rewarded when one is loaded, else 150 coins), then `Game.continueGame` in one mutation and back to Play |
+| `continueGame()` | fixes `continuePayment` **once, before the ad** (free when ad-free, else rewarded when one is loaded, else 150 coins) and carries that decision into the mutation, so the ad going not-ready while it plays never turns a watched ad into a 150-coin charge. The mutation re-checks `continueAvailable` and, for the coin price, the balance; if either fails it is a no-op and nothing navigates |
 | `endGame()` → `finishGame()` | builds `GameSummary` (`durationMs` from the state's `elapsedMs`, `maxCombo`, `placements`, `boardClearedCount`, `dayOrdinal` for daily), runs `Progression.finish`, stores `lastResult` and deletes `savedGame` in one mutation, then emits `game_ended`. Idempotent: `savedGame == null` returns the existing `lastResult`, and `Progression.finish` is idempotent on `gameId` besides |
 | `doubleCoins()` | rewarded, then `Progression.doubleCoins` once (`doubled` guards it twice: before the ad and inside the mutation) |
 | `playAgain()` | `InterstitialPolicy.shouldShow` with `lastResult.elapsedMs`; if true `ads.showInterstitial()` (the `AdSink` transitions land first because the sink enqueues synchronously), then a new classic game and `lastResult: null` in one mutation |

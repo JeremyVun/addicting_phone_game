@@ -1,8 +1,11 @@
 # v1 adversarial review — findings
 
-Probes live in `app/test/probes/**` (63 tests, 52 passing, 11 failing) and run
-with `cd app && flutter test test/probes`. A failing probe is a defect or an
-open ruling; nothing in `app/lib/**` was changed by this review.
+Probes live in `app/test/probes/**` (63 tests) and run with
+`cd app && flutter test test/probes`. They started at 52 passing, 11 failing.
+
+**All 63 pass as of 2026-09-09**; the fixes are the four commits named in the
+table below and the whole suite (387 tests) is green. The probes stay as
+permanent regressions.
 
 ## Defects
 
@@ -22,7 +25,20 @@ action runs outside the mutation that spends. `Themes.buy` and
 `DailyRewards.claim` re-check inside the mutation and are safe — that is the
 shape the money paths need.
 
-## Rulings needed
+### Status (2026-09-09)
+
+| id | status | commit | mechanism |
+| --- | --- | --- | --- |
+| D1 | FIXED | `d85e225` | `continueGame` fixes `continuePayment` once, before the ad, and carries that decision into the mutation. |
+| D2 | FIXED | `d85e225` | the rewarded branch never touches coins, and the coin branch re-checks the balance inside the mutation. |
+| D3 | FIXED | `d85e225` | `rerollWithCoins` re-checks `_canReroll` and the balance against the committed data inside the mutation. |
+| D4 | FIXED | `d85e225` | `_continueAvailable` is re-checked inside the mutation, so the second concurrent continue is a no-op instead of a reducer `StateError`. |
+| D5 | FIXED | `84a48ce` | `Board.clearRows`/`clearLines` share one erase that counts and lists only cells that held a block; `Game.continueGame` uses `clearRows`. |
+| D6 | FIXED | `84a48ce` | same fix: `filledCount` now matches the grid, so `fromJson(toJson(s)) == s` for a continued state. |
+| D7 | FIXED | `6e4fdb5` | `mutateWith` assigns `_data` only after `storage.save` returns. |
+| D8 | FIXED | `6e4fdb5` | every unawaited mutation goes through `mutateInBackground`, which logs a failed write; the queue continues from the last committed state. |
+
+## Rulings — made 2026-09-09, folded into design 4, 5.5, 6, 6.1 and 7.5
 
 | id | the two readings | recommendation |
 | --- | --- | --- |
@@ -86,3 +102,25 @@ shape the money paths need.
 **Onboarding (`onboarding_probe_test.dart`)**
 - the first classic game is restricted and the hints are on.
 - the second classic game is unrestricted and the hints are off.
+
+### How the rulings landed
+
+- **R1** (`a3e8dd7`) — `Streaks.onDailyCompleted` ignores a completion whose
+  ordinal is at or behind the anchor `max(lastCompletedOrdinal,
+  streakReconciledOrdinal)`: streak, anchor and reconciliation marker all
+  stand. `Progression.finish` still records `dailyBest[ordinal]` and
+  `dailyAttempts[ordinal]` for that day, which is factual and harmless (and
+  stops the stale day being replayed for free).
+  **Open:** design 7.5 also says "a daily cannot be started for an ordinal
+  below `lastCompletedOrdinal`". That clause is *not* implemented, because it
+  contradicts the probe `streak_time_probe_test.dart — a device clock moved
+  backwards never destroys a streak`: after rolling the clock back 3 days the
+  probe calls `playDaily`, so refusing the start leaves `savedGame` null and
+  `playToGameOver` throws on `AppController.state`. The streak half of the
+  ruling — the part the probe asserts — is implemented; the start-refusal
+  needs the owner either to drop the clause or to change that probe.
+- **R2** (`a3e8dd7`) — `profile.classicGamesCompleted`, profile JSON `v: 2`,
+  defaulted from `gamesCompleted` when a v1 envelope is read. `startClassic`
+  and `showFirstGameHints` key on it.
+- **R3** (`84a48ce`) — `Board.clearRows` demolishes occupied cells only;
+  `Board.clearLines` keeps the full-line path and now counts correctly too.
