@@ -3,11 +3,11 @@
 abstract final class S {
   static const String appName = 'Settle';
   static const String homePlay = 'Play';
-  static const String homeDailyTitle = 'Daily';
+  static const String homeDailyTitle = 'Daily puzzle';
   static const String homeDailyNotPlayed = 'Not played today';
   static String homeDailyDone(Object score) => 'Today’s score: $score';
   static const String homeDailySecondAttemptAvailable =
-      'One more try is available';
+      'One more try today';
   static const String homeDailyInProgress = 'In progress';
   static const String homeStreakLabel = 'Day streak';
   static const String homeThemes = 'Themes';
@@ -24,7 +24,7 @@ abstract final class S {
   static const String pauseResume = 'Resume';
   static const String pauseHome = 'Home';
   static const String pauseSound = 'Sound';
-  static const String pauseHaptics = 'Haptics';
+  static const String pauseHaptics = 'Vibration';
   static const String overNoRoomTitle = 'No room';
   static const String overContinue = 'Continue';
   static const String overContinueSub =
@@ -55,7 +55,7 @@ abstract final class S {
   static const String dailySecondAttemptSub =
       'You can try once more today. Your better score counts.';
   static String dailyShareText(Object day, Object score, Object streak) =>
-      'Settle · Puzzle $day · $score points · $streak-day streak';
+      'Settle · Daily puzzle $day · $score points · $streak-day streak';
   static const String rewardTitle = 'Daily reward';
   static String rewardDay(Object n) => 'Day $n of 7';
   static const String rewardClaim = 'Claim';
@@ -64,11 +64,11 @@ abstract final class S {
   static String streakFreezes(Object n) => '$n of 2 freezes';
   static const String streakFreezeExplain =
       'A freeze keeps your streak if you miss one day.';
-  static String streakBuyFreeze(Object coins) => 'Buy for $coins coins';
+  static String streakBuyFreeze(Object coins) => 'Buy a freeze for $coins coins';
   static const String streakNotEnough = 'Not enough coins';
   static const String streakGetCoins = 'Get coins';
   static const String streakFreezesHeld = 'Freezes';
-  static const String rerollTitle = 'New blocks';
+  static const String rerollTitle = 'Reroll';
   static const String rerollSub = 'Replaces the blocks you have not placed.';
   static const String rerollWatchAd = 'Watch an ad';
   static String rerollUseCoins(Object coins) => 'Use $coins coins';
@@ -78,12 +78,12 @@ abstract final class S {
   static const String shopTitle = 'Shop';
   static const String shopRemoveAds = 'Remove ads';
   static const String shopRemoveAdsSub =
-      'No interstitial ads and one free continue every game';
+      'No ads between games, plus one free continue every game';
   static const String shopCoinsSmall = '500 coins';
   static const String shopCoinsMedium = '3,000 coins';
   static const String shopCoinsLarge = '8,000 coins';
   static const String shopAllThemes = 'All themes';
-  static const String shopAllThemesSub = 'Every colour theme, now and later';
+  static const String shopAllThemesSub = 'Every theme, including any added later';
   static const String shopPurchased = 'Purchased';
   static const String shopPending = 'Pending';
   static const String shopUnavailable =
@@ -100,7 +100,7 @@ abstract final class S {
   static String themesBuy(Object coins) => 'Buy for $coins coins';
   static const String settingsTitle = 'Settings';
   static const String settingsSound = 'Sound';
-  static const String settingsHaptics = 'Haptics';
+  static const String settingsHaptics = 'Vibration';
   static const String settingsReminder = 'Daily reminder';
   static const String settingsPrivacyOptions = 'Privacy options';
   static const String settingsRestore = 'Restore purchases';
@@ -123,5 +123,4 @@ abstract final class S {
   static const String commonCancel = 'Cancel';
   static const String commonClose = 'Close';
   static String levelLabel(Object level) => 'Level $level';
-  static const String comingSoon = 'Coming soon';
 }
