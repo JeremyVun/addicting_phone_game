@@ -63,8 +63,8 @@ class AppController extends ChangeNotifier
     _queue = _queue.then((_) async {
       try {
         final out = fn(_data);
-        _data = out.data;
         await services.storage.save(out.data);
+        _data = out.data;
         notifyListeners();
         completer.complete(out.result);
       } catch (error, stack) {
@@ -72,6 +72,17 @@ class AppController extends ChangeNotifier
       }
     });
     return completer.future;
+  }
+
+  /// The only way to leave a mutation unawaited: a failed write keeps the last
+  /// committed state, is logged, and the queue carries on with the next one.
+  void mutateInBackground(AppData Function(AppData) fn) {
+    unawaited(
+      mutate(fn).then<void>(
+        (_) {},
+        onError: (Object error) => debugPrint('settle: envelope write failed: $error'),
+      ),
+    );
   }
 
   // ---- launch ----
@@ -193,7 +204,7 @@ class AppController extends ChangeNotifier
   core.PlacementResult place(int slot, int row, int col) {
     final result = core.Game.place(state, slot, row, col);
     final next = core.Game.withElapsed(result.state, _elapsedNow);
-    unawaited(mutate((d) => d.copyWith(savedGame: next)));
+    mutateInBackground((d) => d.copyWith(savedGame: next));
     return result;
   }
 
@@ -394,50 +405,30 @@ class AppController extends ChangeNotifier
   // ---- AdSink (design 8.2) ----
 
   @override
-  void onInterstitialShown() => unawaited(
-    mutate(
-      (d) => d.copyWith(
-        profile: InterstitialPolicy.afterInterstitialShown(
-          d.profile,
-          services.clock.now(),
-        ),
-      ),
+  void onInterstitialShown() => mutateInBackground(
+    (d) => d.copyWith(
+      profile: InterstitialPolicy.afterInterstitialShown(d.profile, services.clock.now()),
     ),
   );
 
   @override
-  void onInterstitialClosed() => unawaited(
-    mutate(
-      (d) => d.copyWith(
-        profile: InterstitialPolicy.afterInterstitialClosed(
-          d.profile,
-          services.clock.now(),
-        ),
-      ),
+  void onInterstitialClosed() => mutateInBackground(
+    (d) => d.copyWith(
+      profile: InterstitialPolicy.afterInterstitialClosed(d.profile, services.clock.now()),
     ),
   );
 
   @override
-  void onRewardedShown() => unawaited(
-    mutate(
-      (d) => d.copyWith(
-        profile: InterstitialPolicy.afterRewardedShown(
-          d.profile,
-          services.clock.now(),
-        ),
-      ),
+  void onRewardedShown() => mutateInBackground(
+    (d) => d.copyWith(
+      profile: InterstitialPolicy.afterRewardedShown(d.profile, services.clock.now()),
     ),
   );
 
   @override
-  void onRewardedClosed() => unawaited(
-    mutate(
-      (d) => d.copyWith(
-        profile: InterstitialPolicy.afterRewardedClosed(
-          d.profile,
-          services.clock.now(),
-        ),
-      ),
+  void onRewardedClosed() => mutateInBackground(
+    (d) => d.copyWith(
+      profile: InterstitialPolicy.afterRewardedClosed(d.profile, services.clock.now()),
     ),
   );
 
