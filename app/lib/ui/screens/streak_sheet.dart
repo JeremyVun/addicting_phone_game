@@ -55,7 +55,7 @@ class StreakSheet extends StatelessWidget {
           const SizedBox(height: 16),
           PrimaryButton(
             label: S.streakBuyFreeze,
-            trailing: S.coinsLabel(Economy.freezeCost),
+            trailing: S.themesCoinLock(Economy.freezeCost),
             palette: palette,
             onPressed: full || poor ? null : controller.buyStreakFreeze,
           ),
