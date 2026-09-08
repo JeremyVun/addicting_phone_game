@@ -40,10 +40,8 @@ void onParentResize(Vector2 maxSize) {}   void onChildrenChanged(Component, Chil
 void update(double dt) {}          void render(Canvas canvas) {}
 ```
 - Awaitable state: `Future<void> get loaded / mounted / removed`; flags `isLoading/isLoaded/isMounted/isRemoving/isRemoved`.
-- `FlameGame.onGameResize` is `@mustCallSuper`; it resizes `camera.viewport` *first* so `game.size` is correct inside children's `onGameResize`.
-- `Vector2 get size => camera.viewport.virtualSize;` — **not** the widget size. Widget size is `canvasSize`.
-- `pauseEngine()` / `resumeEngine()`; `dispose()` (1.36+) removes all children, drains pending events, clears caches.
-- Override `Color backgroundColor()` to change the clear colour.
+- `FlameGame.onGameResize` is `@mustCallSuper`; it resizes `camera.viewport` *first* so `game.size` is correct inside children's `onGameResize`. `Vector2 get size => camera.viewport.virtualSize` — **not** the widget size; widget size is `canvasSize`.
+- `pauseEngine()`/`resumeEngine()`; `dispose()` (1.36+) removes all children, drains pending events, clears caches; override `Color backgroundColor()` for the clear colour.
 - Optional mixins: `SingleGameInstance` (makes `add` complete `onLoad` synchronously), `HasPerformanceTracker` (`updateTime`, `renderTime`).
 
 ## GameWidget & overlays
@@ -60,8 +58,7 @@ GameWidget({
 });
 const GameWidget.controlled({required GameFactory<T> this.gameFactory, /* same params */});
 ```
-- `OverlayWidgetBuilder<T> = Widget Function(BuildContext, T game)`.
-- `game.overlays` is an `OverlayManager`:
+- `OverlayWidgetBuilder<T> = Widget Function(BuildContext, T game)`. `game.overlays` is an `OverlayManager`:
 ```dart
 bool add(String overlayName, {int priority = 0});   void addAll(Iterable<String> overlayNames);
 void addEntry(String name, OverlayBuilderFunction builder);   bool isActive(String overlayName);
@@ -72,8 +69,7 @@ UnmodifiableListView<String> get activeOverlays;  // sorted by priority
 UnmodifiableListView<String> get registeredOverlays;
 ```
 - `add`/`remove` return whether the set changed and trigger `game.refreshWidget(...)` → `setState` on `GameWidgetState`. Adding an unregistered name trips an assert.
-- `overlayBuilderMap`/`initialActiveOverlays` are applied in the `GameWidget` constructor via `addEntry`/`addAll`, i.e. only for the non-`.controlled` form at construction time.
-- Overlay widgets are wrapped in `KeyedSubtree(key: ValueKey(overlayData))` and stacked over the game, ordered by ascending `priority`.
+- `overlayBuilderMap`/`initialActiveOverlays` are applied in the `GameWidget` constructor via `addEntry`/`addAll`. Overlay widgets are wrapped in `KeyedSubtree(key: ValueKey(overlayData))` and stacked over the game, ordered by ascending `priority`.
 
 ## Component tree
 ```dart
@@ -91,8 +87,7 @@ Iterable<Component> componentsAtPoint(Vector2 point, [List<Vector2>? nestedPoint
 bool containsLocalPoint(Vector2 point) => false;   // Component default: never hit
 ```
 - `children.query<T>()` filters by type (`ordered_set` API). `ComponentSet` no longer exists in 1.38 — the type is `ReadOnlyOrderedSet<Component>` / `OrderedSet<Component>` (`createComponentSet()`).
-- `ComponentKey.named('x')` / `ComponentKey.unique()` + `game.findByKey(key)` for global lookup.
-- `HasVisibility` mixin gives `isVisible` without removing from the tree.
+- `ComponentKey.named('x')` / `ComponentKey.unique()` + `game.findByKey(key)` for global lookup; `HasVisibility` gives `isVisible` without removing from the tree.
 
 ```dart
 // implements AnchorProvider, AngleProvider, PositionProvider, ScaleProvider,
@@ -124,13 +119,12 @@ TextComponent({String? text, T? textRenderer, super.position, super.size, super.
 String get text; set text(String);   // setter re-measures and overwrites size
 T get textRenderer; set textRenderer(T);
 ```
-- `SpriteComponent.onMount` asserts `sprite != null`: set it in the constructor or in `onLoad`.
-- `SpriteComponent.autoResize` defaults to `size == null`; manually writing `size` flips `autoResize` to false.
+- `SpriteComponent.onMount` asserts `sprite != null` (set it in the constructor or `onLoad`); `autoResize` defaults to `size == null` and manually writing `size` flips it to false.
 - `game.world.add(...)` for world-space entities; `game.add(...)` puts a component in game space (sibling of camera/world); `camera.viewport.add(...)` for HUD.
 
 ## Rendering: update / render
 - Whole tree is `update`d, then the whole tree is `render`ed. `render(Canvas)` is already translated/rotated/scaled into the component's local space by its `Transform2DDecorator`, so draw at local `(0,0)`.
-- Anything drawn in `render` before `super.render(canvas)`/children ends up under the children (children render after `render`, via `renderTree`).
+- Children render after the parent's `render` (via `renderTree`), so parent drawing is always underneath.
 
 ### Rounded rects and paints inside render
 ```dart
@@ -154,6 +148,7 @@ CameraComponent.withFixedResolution({required double width, required double heig
 ```
 - `withFixedResolution` is exactly `viewport: FixedResolutionViewport(resolution: Vector2(width, height))` (letterboxed, uniform `min(scaleX, scaleY)`).
 - `class World extends Component` with `priority = -0x7fffffff`; `World.renderTree` is a no-op — the world is only drawn *through* a camera.
+
 - Viewport = the on-screen window (`position`, `size`, `anchor = Anchor.topLeft`, `virtualSize`). Types: `MaxViewport` (default, fills), `FixedResolutionViewport`, `FixedSizeViewport`, `FixedAspectRatioViewport`, `CircularViewport`. Children of the viewport are static HUD.
 - Viewfinder = where in the world the camera looks. It has no `size`.
 ```dart
@@ -222,10 +217,8 @@ class DragEndEvent extends Event<DragEndDetails> { final int pointerId; final Ve
 ```
 - Hit testing uses `containsLocalPoint(Vector2)`. `PositionComponent` implements it as `0 <= x < size.x && 0 <= y < size.y` (top/left inclusive, bottom/right exclusive); `CircleComponent` overrides it with a radius test. A bare `Component` returns `false` and will never receive events — override it or use a `PositionComponent` with a real `size`.
 - Propagation: `Event.deliverToComponents` walks `descendants(reversed: true, includeSelf: true)` (topmost first) and **stops after the first handler** unless that handler sets `event.continuePropagation = true`. Reset to `false` before each component, so set it inside every handler that wants to pass through.
-- `event.raw` (1.33+) exposes the underlying Flutter `*Details`.
-- `FlameGame` itself is a `Component`, so `class MyGame extends FlameGame with TapCallbacks` works; `FlameGame.containsLocalPoint` returns true for any point inside `canvasSize`.
-- Legacy game-level mixins in `package:flame/gestures.dart` (`TapDetector`, `DragDetector`, `LongPressDetector`, …, operating on `*Info` objects) are all `@Deprecated('Use TapCallbacks instead')`. `MultiTouchTapDetector` / `MultiTouchDragDetector` (`package:flame/events.dart`) are not deprecated but are game-level only.
-- `IgnoreEvents` mixin skips a subtree during hit testing.
+- `event.raw` (1.33+) exposes the underlying Flutter `*Details`. `FlameGame` is itself a `Component`, so `class MyGame extends FlameGame with TapCallbacks` works; `FlameGame.containsLocalPoint` is true for any point inside `canvasSize`.
+- Legacy game-level mixins in `package:flame/gestures.dart` (`TapDetector`, `LongPressDetector`, … taking `*Info` objects) are all `@Deprecated('Use TapCallbacks instead')`. `MultiTouchTapDetector`/`MultiTouchDragDetector` (`package:flame/events.dart`) are not deprecated but are game-level only. `IgnoreEvents` skips a subtree during hit testing.
 
 ## Effects
 ```dart
@@ -258,10 +251,10 @@ factory EffectController({
   VoidCallback? onMax, VoidCallback? onMin,
 });
 ```
-- Asserts: exactly one of `duration`/`speed`; `infinite` and `repeatCount` are mutually exclusive; all durations non-negative; `speed > 0`.
+- Asserts: exactly one of `duration`/`speed`; `infinite` and `repeatCount` mutually exclusive; durations non-negative; `speed > 0`.
 - Usage: `component.add(MoveEffect.to(target, EffectController(duration: 0.2, curve: Curves.easeOutCubic), onComplete: () => ...));`
-- Effects target providers, not components: `ColorEffect`/`OpacityEffect` need `HasPaint` (all of `SpriteComponent`, `TextComponent`, shape components have it). `OpacityEffect` on text works from 1.38.0.
-- `CombinedEffect` (1.34+) runs several effects together; `FunctionEffect`, `GlowEffect`, `HueEffect`, `MoveAlongPathEffect`, `SizeEffect`, `AnchorEffect` also exist.
+- Effects target providers, not components: `ColorEffect`/`OpacityEffect` need `HasPaint` (`SpriteComponent`, `TextComponent`, shape components all have it); `OpacityEffect` on text works from 1.38.0.
+- Also: `CombinedEffect` (1.34+, runs several at once), `FunctionEffect`, `GlowEffect`, `HueEffect`, `MoveAlongPathEffect`, `SizeEffect`, `AnchorEffect`.
 
 ## Particles
 ```dart
@@ -309,11 +302,11 @@ TimerComponent({required double period, bool repeat = false, bool autoStart = tr
 Timer(double limit, {VoidCallback? onTick, bool repeat = false, bool autoStart = true, int? tickCount});
 // Timer: update(dt), start(), stop(), pause(), resume(), reset(), current, progress, finished, isRunning()
 ```
-- For one-off delays inside a component you can also just `add(TimerComponent(period: 0.4, removeOnFinish: true, onTick: () {...}))` or use `Future.delayed` sparingly (not tied to `pauseEngine`).
+- One-off delay: `add(TimerComponent(period: 0.4, removeOnFinish: true, onTick: () {...}))`. `Future.delayed` is not tied to `pauseEngine`.
 
 ## Priority / z-order
 - `priority` is a plain `int` (negative allowed); **smaller = updated/rendered first (behind)**. Ties break on insertion order.
-- Set via `Component(priority: n)` / `PositionComponent(priority: n)`; changing it later is allowed but "relatively expensive" — it enqueues a rebalance of all siblings (`game.enqueuePriorityChange(parent, this)`), applied on the next tick, so ordering changes are not visible until then.
+- Set via the `priority:` constructor param; changing it later enqueues a rebalance of all siblings (`game.enqueuePriorityChange(parent, this)`) applied on the next tick, so the reorder is not visible immediately and is "relatively expensive".
 - `CameraComponent` has priority `0x7fffffff` and `World` has `-0x7fffffff`; both are children of `FlameGame`, so ordinary game-level children render between them.
 
 ## HasGameReference
@@ -324,7 +317,7 @@ mixin HasGameReference<T extends FlameGame> on Component {
 @Deprecated('Use HasGameReference instead. This mixin will be removed in a future version of Flame.')
 mixin HasGameRef<T extends FlameGame> on Component { T get game;  T get gameRef; }
 ```
-- Both assert the found game is non-null and of type `T`; the lookup is lazy and cached. Also available: `HasWorldReference<T extends World>` (`world`), `HasAncestor<T>`, `ParentIsA<T>`.
+- Both assert the game is non-null and of type `T`; lookup is lazy and cached. Also: `HasWorldReference<T extends World>` (`world`), `HasAncestor<T>`, `ParentIsA<T>`.
 
 ## Anchors
 ```dart
@@ -332,8 +325,7 @@ mixin HasGameRef<T extends FlameGame> on Component { T get game;  T get gameRef;
 topLeft(0,0)  topCenter(.5,0)  topRight(1,0)  centerLeft(0,.5)  center(.5,.5)
 centerRight(1,.5)  bottomLeft(0,1)  bottomCenter(.5,1)  bottomRight(1,1)
 ```
-- `anchor` decides what `position` means: with `Anchor.center`, `position` is the component's centre; with the default `Anchor.topLeft` it is its top-left. Rotation and scaling also pivot about the anchor.
-- Local coordinates for `render`/`containsLocalPoint` always start at `(0,0)` in the top-left of the component regardless of anchor.
+- `anchor` decides what `position` means: with `Anchor.center` it is the centre, with the default `Anchor.topLeft` the top-left corner. Rotation/scaling pivot about the anchor too. Local coordinates in `render`/`containsLocalPoint` always start at `(0,0)` top-left regardless of anchor.
 
 ## Coordinate spaces
 ```dart
@@ -350,7 +342,7 @@ double get absoluteAngle;  Vector2 get absoluteScale;  Vector2 get absoluteScale
 Rect toRect();  Rect toAbsoluteRect();
 bool containsPoint(Vector2 point);           // == containsLocalPoint(absoluteToLocal(point))
 ```
-- There is **no** `toAbsolute()` method: use `absolutePositionOf(localPoint)`.
+- There is **no** `toAbsolute()` method — use `absolutePositionOf(localPoint)`.
 - Screen/widget px ↔ world: `camera.globalToLocal(widgetPoint)` and `camera.localToGlobal(worldPoint)` (viewport then viewfinder). Raw pointer coords → widget coords: `game.convertGlobalToLocalCoordinate(devicePosition)` (this is what `canvasPosition` already is).
 - Chain for a grid: `event.localPosition` inside a cell component is already cell-local; on the world/game use `event.canvasPosition` then `camera.globalToLocal` to get world coords, then divide by cell size.
 
@@ -359,8 +351,7 @@ bool containsPoint(Vector2 point);           // == containsLocalPoint(absoluteTo
 - Keep the game instance **out of `build()`**: create it once in `State.initState`/as a `late final` field, or use `GameWidget.controlled(gameFactory: MyGame.new)` which builds and owns the instance in the widget's state.
 - Overlays vs Stack: overlays are rebuilt by the game (`game.overlays.add(...)` triggers `setState` in `GameWidgetState`) and get the game instance passed to the builder; a plain Flutter `Stack` above the `GameWidget` is fine too but you must plumb your own state. Prefer overlays for pause/HUD/dialogs driven from game code.
 - Each `overlays.add/remove/clear` causes a widget rebuild — do not call it every frame.
-- `addRepaintBoundary` defaults to `true`; `behavior` (1.36+) controls hit testing of the widget itself.
-- `loadingBuilder` shows while `onLoad` futures resolve; `errorBuilder` receives the thrown `Object` — without it, load errors are rethrown into the widget tree.
+- `addRepaintBoundary` defaults to `true`; `behavior` (1.36+) controls hit testing of the widget itself. `loadingBuilder` shows while `onLoad` futures resolve; `errorBuilder` receives the thrown `Object` — without it, load errors are rethrown into the widget tree.
 
 ## Testing with flame_test
 ```dart
@@ -415,8 +406,7 @@ renderer.render(canvas, '42', size / 2, anchor: Anchor.center);  // inside rende
 final m = renderer.getLineMetrics('42');                         // measure before laying out
 world.add(TextComponent(text: 'Score', textRenderer: renderer, anchor: Anchor.center));
 ```
-- `TextComponent` re-measures and overwrites `size` whenever `text` or `textRenderer` changes — do not set `size` on it.
-- `TextPaint` caches a `TextPainter` per distinct string forever; a per-frame changing string (e.g. a timer with ms) grows that cache unboundedly.
+- `TextComponent` re-measures and overwrites `size` whenever `text`/`textRenderer` changes — do not set `size` on it. `TextPaint` caches a `TextPainter` per distinct string forever, so a per-frame changing string grows that cache unboundedly.
 - `TextBoxComponent` for wrapped/boxed text; `SpriteFontRenderer` for bitmap fonts.
 
 ## Gotchas
