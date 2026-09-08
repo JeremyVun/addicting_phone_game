@@ -77,11 +77,17 @@ class FakeAdsService implements AdsService {
     _sink?.onInterstitialClosed();
   }
 
-  @override
-  bool get privacyOptionsRequired => false;
+  bool privacyRequired = false;
+  int privacyOptionForms = 0;
 
   @override
-  Future<void> showPrivacyOptions() async {}
+  bool get privacyOptionsRequired => privacyRequired;
+
+  @override
+  Future<void> showPrivacyOptions() async {
+    privacyOptionForms += 1;
+    privacyRequired = false;
+  }
 }
 
 enum AdKind { rewarded, interstitial }

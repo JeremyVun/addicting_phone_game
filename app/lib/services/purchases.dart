@@ -49,6 +49,9 @@ class FakePurchaseService implements PurchaseService {
 
   final Duration delay;
   final List<String> bought = [];
+
+  /// Lets a test or an emulator drive exercise the "store unreachable" state.
+  bool catalogueIsEmpty = false;
   PurchaseSink? _sink;
   int _tokenCounter = 0;
 
@@ -56,10 +59,12 @@ class FakePurchaseService implements PurchaseService {
   void start(PurchaseSink sink) => _sink = sink;
 
   @override
-  Future<List<StoreProduct>> products() async => [
-    for (final entry in catalogue.entries)
-      StoreProduct(id: entry.key, title: entry.key, price: entry.value),
-  ];
+  Future<List<StoreProduct>> products() async => catalogueIsEmpty
+      ? const []
+      : [
+          for (final entry in catalogue.entries)
+            StoreProduct(id: entry.key, title: entry.key, price: entry.value),
+        ];
 
   @override
   Future<void> buy(String productId) async {
