@@ -28,6 +28,9 @@ GameState stateWith({
       comboCount: comboCount,
       missCount: missCount,
       setsGenerated: setsGenerated,
+      placements: 0,
+      maxCombo: 0,
+      boardClears: 0,
       continuesUsed: continuesUsed,
       rerollsUsed: rerollsUsed,
       mode: GameMode.classic,
@@ -159,6 +162,9 @@ void main() {
         comboCount: 0,
         missCount: 0,
         setsGenerated: 1,
+        placements: 0,
+        maxCombo: 0,
+        boardClears: 0,
         continuesUsed: 0,
         rerollsUsed: 0,
         mode: GameMode.classic,
@@ -389,5 +395,67 @@ void main() {
     expect(result.comboCount, 2);
     expect(result.multiplier, 2);
     expect(result.clearPoints, Scoring.clearPoints(1) * 2);
+  });
+
+  test('running totals accumulate and survive continue and reroll', () {
+    var state = Game.newGame(mode: GameMode.classic, seed: 4242, skill: 0.5);
+    expect(state.placements, 0);
+    expect(state.maxCombo, 0);
+    expect(state.boardClears, 0);
+    const bot = GreedyBot();
+    final rng = Rng(4242);
+    var moves = 0;
+    var clears = 0;
+    var best = 0;
+    while (!state.isOver) {
+      final move = bot.choose(state, rng);
+      if (move == null) break;
+      final result = Game.place(state, move.slot, move.row, move.col);
+      moves++;
+      if (result.boardCleared) clears++;
+      if (result.comboCount > best) best = result.comboCount;
+      state = result.state;
+      expect(state.placements, moves);
+      expect(state.maxCombo, best);
+      expect(state.boardClears, clears);
+    }
+    expect(state.placements, greaterThan(10));
+    expect(state.maxCombo, greaterThan(0));
+    final continued = Game.continueGame(state);
+    expect(continued.placements, state.placements);
+    expect(continued.maxCombo, state.maxCombo);
+    expect(continued.boardClears, state.boardClears);
+    final rerolled = Game.reroll(continued);
+    expect(rerolled.placements, continued.placements);
+    expect(rerolled.maxCombo, continued.maxCombo);
+    expect(rerolled.boardClears, continued.boardClears);
+  });
+
+  test('reroll ends the game when the new set does not fit', () {
+    final state = stateWith(
+      board: Board.fromJson('0' * Board.cellCount),
+      set: [Piece.dot, null, null],
+    );
+    expect(state.board.isFull, isTrue);
+    final after = Game.reroll(state);
+    expect(after.rerollsUsed, 1);
+    expect(after.remainingSlots, 1);
+    expect(after.status, GameStatus.over);
+    expect(() => Game.reroll(after), throwsStateError);
+  });
+
+  test('continue resumes play with a set that fits', () {
+    final board = Board.fromJson([
+      ...List.filled(3, '........'),
+      ...List.filled(5, '00000000'),
+    ].join());
+    final state = stateWith(
+      board: board,
+      set: [Piece.dot, null, null],
+      status: GameStatus.over,
+    );
+    final after = Game.continueGame(state);
+    expect(after.status, GameStatus.playing);
+    expect(after.continuesUsed, 1);
   });
 }

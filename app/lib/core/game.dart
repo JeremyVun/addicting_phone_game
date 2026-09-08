@@ -67,6 +67,9 @@ class Game {
       comboCount: 0,
       missCount: 0,
       setsGenerated: 1,
+      placements: 0,
+      maxCombo: 0,
+      boardClears: 0,
       continuesUsed: 0,
       rerollsUsed: 0,
       mode: mode,
@@ -165,6 +168,11 @@ class Game {
       comboCount: combo.comboCount,
       missCount: combo.missCount,
       setsGenerated: setsGenerated,
+      placements: state.placements + 1,
+      maxCombo: combo.comboCount > state.maxCombo
+          ? combo.comboCount
+          : state.maxCombo,
+      boardClears: state.boardClears + (boardCleared ? 1 : 0),
       rng: rng,
       status: gameOver ? GameStatus.over : GameStatus.playing,
     );

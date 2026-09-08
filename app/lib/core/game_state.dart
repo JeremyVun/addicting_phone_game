@@ -16,6 +16,9 @@ class GameState {
     required this.comboCount,
     required this.missCount,
     required this.setsGenerated,
+    required this.placements,
+    required this.maxCombo,
+    required this.boardClears,
     required this.continuesUsed,
     required this.rerollsUsed,
     required this.mode,
@@ -45,6 +48,9 @@ class GameState {
       comboCount: json['comboCount'] as int,
       missCount: json['missCount'] as int,
       setsGenerated: json['setsGenerated'] as int,
+      placements: json['placements'] as int,
+      maxCombo: json['maxCombo'] as int,
+      boardClears: json['boardClears'] as int,
       continuesUsed: json['continuesUsed'] as int,
       rerollsUsed: json['rerollsUsed'] as int,
       mode: GameMode.values.byName(json['mode'] as String),
@@ -73,6 +79,9 @@ class GameState {
   final int comboCount;
   final int missCount;
   final int setsGenerated;
+  final int placements;
+  final int maxCombo;
+  final int boardClears;
   final int continuesUsed;
   final int rerollsUsed;
   final GameMode mode;
@@ -96,6 +105,9 @@ class GameState {
     int? comboCount,
     int? missCount,
     int? setsGenerated,
+    int? placements,
+    int? maxCombo,
+    int? boardClears,
     int? continuesUsed,
     int? rerollsUsed,
     Rng? rng,
@@ -110,6 +122,9 @@ class GameState {
         comboCount: comboCount ?? this.comboCount,
         missCount: missCount ?? this.missCount,
         setsGenerated: setsGenerated ?? this.setsGenerated,
+        placements: placements ?? this.placements,
+        maxCombo: maxCombo ?? this.maxCombo,
+        boardClears: boardClears ?? this.boardClears,
         continuesUsed: continuesUsed ?? this.continuesUsed,
         rerollsUsed: rerollsUsed ?? this.rerollsUsed,
         mode: mode,
@@ -132,6 +147,9 @@ class GameState {
         'comboCount': comboCount,
         'missCount': missCount,
         'setsGenerated': setsGenerated,
+        'placements': placements,
+        'maxCombo': maxCombo,
+        'boardClears': boardClears,
         'continuesUsed': continuesUsed,
         'rerollsUsed': rerollsUsed,
         'mode': mode.name,
@@ -155,6 +173,9 @@ class GameState {
       other.comboCount == comboCount &&
       other.missCount == missCount &&
       other.setsGenerated == setsGenerated &&
+      other.placements == placements &&
+      other.maxCombo == maxCombo &&
+      other.boardClears == boardClears &&
       other.continuesUsed == continuesUsed &&
       other.rerollsUsed == rerollsUsed &&
       other.mode == mode &&
@@ -168,7 +189,7 @@ class GameState {
       other.dayOrdinal == dayOrdinal;
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
         id,
         board,
         Object.hashAll(set.map((p) => p?.id)),
@@ -176,6 +197,9 @@ class GameState {
         comboCount,
         missCount,
         setsGenerated,
+        placements,
+        maxCombo,
+        boardClears,
         continuesUsed,
         rerollsUsed,
         mode,
@@ -187,7 +211,7 @@ class GameState {
         startedAtMs,
         elapsedMs,
         dayOrdinal,
-      );
+      ]);
 
   static bool _sameSet(List<Piece?> a, List<Piece?> b) {
     if (a.length != b.length) return false;

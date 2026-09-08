@@ -123,27 +123,55 @@ void main() {
     expect(mercyRate, greaterThan(calmRate + 0.2));
   });
 
-  test('assist raises the line-completing rate at low pressure', () {
+  test('assist lifts the line-completing rate above plain 5.3 sampling', () {
+    // Only a horizontal i3 can complete row 0 here: row 1 blocks every piece
+    // that would need a second row.
     final board = Board.fromJson([
-      '0000000.',
-      ...List.filled(7, '........'),
+      '000...00',
+      '1..111..',
+      ...List.filled(6, '........'),
     ].join());
     expect(board.fill, lessThan(Director.mercyFillThreshold));
+    expect(board.fullLines().isEmpty, isTrue);
+    const runs = 4000;
+    const p = 0.0;
 
-    double assistedRate(double p) {
-      final rng = Rng(777);
-      var assisted = 0;
-      const runs = 600;
-      for (var i = 0; i < runs; i++) {
-        final set = Director.generateSet(board, rng, p, 3);
-        if (Director.setIsAssisted(board, set)) assisted++;
+    Piece sample(Rng rng, List<double> weights) {
+      var total = 0.0;
+      for (final w in weights) {
+        total += w;
       }
-      return assisted / runs;
+      var target = rng.nextDouble() * total;
+      for (var i = 0; i < Piece.all.length; i++) {
+        target -= weights[i];
+        if (target < 0) return Piece.all[i];
+      }
+      return Piece.all.last;
     }
 
-    final low = assistedRate(0.0);
-    final high = assistedRate(1.0);
-    expect(low, greaterThan(high + 0.10));
+    final weights = Director.weights(Piece.all, p);
+    final naturalRng = Rng(555);
+    var natural = 0;
+    for (var i = 0; i < runs; i++) {
+      final set = [for (var k = 0; k < 3; k++) sample(naturalRng, weights)];
+      if (Director.setIsAssisted(board, set)) natural++;
+    }
+
+    final directorRng = Rng(777);
+    var assisted = 0;
+    for (var i = 0; i < runs; i++) {
+      if (Director.setIsAssisted(
+          board, Director.generateSet(board, directorRng, p, 3))) {
+        assisted++;
+      }
+    }
+
+    final naturalRate = natural / runs;
+    final directorRate = assisted / runs;
+    expect(directorRate, greaterThan(naturalRate + 0.08),
+        reason: 'natural $naturalRate director $directorRate');
+    expect(directorRate, greaterThan(naturalRate * 1.8),
+        reason: 'natural $naturalRate director $directorRate');
   });
 
   test('the onboarding restriction limits the catalogue', () {
