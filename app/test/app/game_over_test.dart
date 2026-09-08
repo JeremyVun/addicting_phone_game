@@ -203,6 +203,18 @@ void main() {
     expect(shows.controller.lastResult, isNull);
     expect(shows.controller.currentGame, isNotNull);
     expect((await shows.storage.load())!.profile.gamesSinceInterstitial, 0);
+
+    final failed = await ready(
+      gamesCompleted: 5,
+      gamesSinceInterstitial: 5,
+      gameLength: const Duration(seconds: 60),
+    );
+    failed.ads.showFails = true;
+    await failed.controller.playAgain();
+    await failed.controller.idle;
+    expect(failed.analytics.named('interstitial_shown'), isEmpty);
+    expect(failed.controller.profile.gamesSinceInterstitial, 6);
+    expect(failed.controller.profile.lastInterstitialClosedAt, 0);
   });
 
   test('a rewarded show stamps the rewarded cooldown through the sink', () async {

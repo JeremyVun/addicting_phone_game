@@ -353,10 +353,7 @@ class AppController extends ChangeNotifier
           loaded: services.ads.isInterstitialReady,
           now: services.clock.now(),
         );
-    if (shouldShow) {
-      await services.ads.showInterstitial();
-      services.analytics.count('interstitial_shown');
-    }
+    if (shouldShow) await services.ads.showInterstitial();
     await mutate(
       (d) => AppData(
         profile: d.profile,
@@ -394,16 +391,19 @@ class AppController extends ChangeNotifier
   // ---- AdSink (design 8.2) ----
 
   @override
-  void onInterstitialShown() => unawaited(
-    mutate(
-      (d) => d.copyWith(
-        profile: InterstitialPolicy.afterInterstitialShown(
-          d.profile,
-          services.clock.now(),
+  void onInterstitialShown() {
+    services.analytics.count('interstitial_shown');
+    unawaited(
+      mutate(
+        (d) => d.copyWith(
+          profile: InterstitialPolicy.afterInterstitialShown(
+            d.profile,
+            services.clock.now(),
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 
   @override
   void onInterstitialClosed() => unawaited(
@@ -459,11 +459,15 @@ class AppController extends ChangeNotifier
   );
 
   @override
-  void purchasePending(String productId) {}
+  void purchasePending(String productId) => shop.markPending(productId);
 
   @override
-  void purchaseFailed(String productId) =>
-      navigator.showMessage(S.shopPurchaseFailed);
+  void purchaseFailed(String productId) {
+    shop
+      ..clearPending(productId)
+      ..showMessage(S.shopPurchaseFailed);
+    navigator.showMessage(S.shopPurchaseFailed);
+  }
 
   // ---- helpers ----
 

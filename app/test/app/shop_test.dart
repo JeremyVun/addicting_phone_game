@@ -63,8 +63,19 @@ void main() {
   test('a failed purchase surfaces the message and clears pending', () async {
     final harness = Harness();
     await harness.start();
+    harness.controller.purchasePending(Products.coinsSmall);
+    expect(harness.controller.shop.pending, contains(Products.coinsSmall));
     harness.controller.purchaseFailed(Products.coinsSmall);
+    expect(harness.controller.shop.pending, isEmpty);
+    expect(harness.controller.shop.message, S.shopPurchaseFailed);
     expect(harness.navigator.calls, contains('message:${S.shopPurchaseFailed}'));
+  });
+
+  test('a slow card leaves the item pending on the shop', () async {
+    final harness = Harness();
+    await harness.start();
+    harness.controller.purchasePending(Products.coinsLarge);
+    expect(harness.controller.shop.pending, contains(Products.coinsLarge));
   });
 
   test('privacy options follow the ads service', () async {
