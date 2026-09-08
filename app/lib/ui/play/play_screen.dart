@@ -62,55 +62,59 @@ class _PlayScreenState extends State<PlayScreen> {
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < 120 || constraints.maxHeight < 200) {
-          return ColoredBox(color: widget.host.palette.ground);
-        }
-        final geom = PlayGeometry.of(
-          constraints.biggest,
-          safeTop: media.padding.top,
-          safeBottom: media.padding.bottom,
-        );
-        final game = _game ??= SettlePlayGame(
-          host: widget.host,
-          audio: widget.audio,
-          haptics: widget.haptics,
-          geometry: geom,
-        );
-        game.applyGeometry(geom);
-        return ValueListenableBuilder<double>(
-          valueListenable: game.dim,
-          builder: (context, dim, child) => _Dimmed(amount: dim, child: child!),
-          // A loose Stack would collapse to its smallest child and leave the
-          // GameWidget with no size at all.
-          child: SizedBox.fromSize(
-            size: geom.size,
-            child: Stack(
-              children: [
-                Positioned.fill(child: GameWidget(game: game)),
-                _Hud(host: widget.host, game: game, geom: geom),
-                _Band(host: widget.host, geom: geom),
-                Positioned.fromRect(
-                  rect: geom.pauseButton,
-                  child: _TapTarget(
-                    key: const ValueKey('pause'),
-                    onTap: widget.host.requestPause,
-                    semantics: PlayStrings.pauseSemantics,
-                    child: Center(
-                      child: PlayIconBox(
-                        PlayIcon.pause,
-                        size: 20 * geom.s,
-                        colour: widget.host.palette.faint,
+    return Material(
+      color: widget.host.palette.ground,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < 120 || constraints.maxHeight < 200) {
+            return ColoredBox(color: widget.host.palette.ground);
+          }
+          final geom = PlayGeometry.of(
+            constraints.biggest,
+            safeTop: media.padding.top,
+            safeBottom: media.padding.bottom,
+          );
+          final game = _game ??= SettlePlayGame(
+            host: widget.host,
+            audio: widget.audio,
+            haptics: widget.haptics,
+            geometry: geom,
+          );
+          game.applyGeometry(geom);
+          return ValueListenableBuilder<double>(
+            valueListenable: game.dim,
+            builder: (context, dim, child) =>
+                _Dimmed(amount: dim, child: child!),
+            // A loose Stack would collapse to its smallest child and leave the
+            // GameWidget with no size at all.
+            child: SizedBox.fromSize(
+              size: geom.size,
+              child: Stack(
+                children: [
+                  Positioned.fill(child: GameWidget(game: game)),
+                  _Hud(host: widget.host, game: game, geom: geom),
+                  _Band(host: widget.host, geom: geom),
+                  Positioned.fromRect(
+                    rect: geom.pauseButton,
+                    child: _TapTarget(
+                      key: const ValueKey('pause'),
+                      onTap: widget.host.requestPause,
+                      semantics: PlayStrings.pauseSemantics,
+                      child: Center(
+                        child: PlayIconBox(
+                          PlayIcon.pause,
+                          size: 20 * geom.s,
+                          colour: widget.host.palette.faint,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
