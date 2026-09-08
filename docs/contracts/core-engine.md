@@ -205,7 +205,28 @@ the greedy bot only (random games never reach bucket B pressures).
 
 `sim/bots.dart` exposes `RandomBot`, `GreedyBot`, `Move`, `playGame` and
 `GameRecord` so tests can drive games headlessly. 2,000 greedy games take
-about one second.
+about one second. `playGame` takes `maxPlacements`; a game that hits the cap
+comes back with `censored: true` and its length is a lower bound.
+
+`sim/smart_bot.dart` adds `SmartBot`, a full-set lookahead: every ordering of
+the pieces still in the set, the 12 best positions each by a cheap
+contact-and-lines heuristic, scoring the board the set leaves behind with
+`SmartWeights` (+120 per line cleared along the way, +2 per empty cell,
+-6 per hole, -3 per empty component of 1-2 cells, +1 per cell of the largest
+empty rectangle, -40 when fewer than two 3x3 slots remain, -1000 for a
+sequence that strands a piece). It is stateful: it plans once per set and
+replays the plan, replanning whenever the board no longer matches. About
+3.5 ms per placement, so it needs a cap.
+
+`--sweep [--offsets a,b,c] [--games N] [--smart-games N] [--max-placements N]`
+re-runs the calibration: for each `sizeBiasOffset` it prints median
+placements and score for all three bots, the greedy assist rates, how many
+smart games hit the cap, and the bag composition by piece size at p = 0.5.
+`--offset X` sets the offset for a single normal run.
+`Director.sizeBiasOffset` is mutable **only** for this; the app must never
+write it, and a saved game generated under a different value replays wrongly.
+Note `dart run` cannot be parallelised across processes in one checkout (the
+native-asset build in `.dart_tool` races); stagger the launches.
 
 ### As-built numbers (2,000 games, skill 0.5, seed 1)
 
