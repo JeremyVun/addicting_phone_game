@@ -96,7 +96,7 @@ All constants are `static const` on `Director`: `pressureFloor` 0.15,
 `skillAdjustment` 0.30, `skillMidpoint` 0.5, `mercyFillThreshold` 0.70,
 `mercyChanceBase` 0.70, `mercyChancePressureFactor` 0.40, `mercyMaxCells` 3,
 `assistChanceBase` 0.45, `assistCandidates` 12, `fitTriesAtPressure` 10,
-`fitTriesTotal` 30, `sizeBiasScale` 2.0, **`sizeBiasOffset` 2.6**,
+`fitTriesTotal` 30, `sizeBiasScale` 2.0, **`sizeBiasOffset` 1.6**,
 `restrictedFamilies` = dot, i2, i3, o2, l3, l4, t4.
 
 - `pressure(setsGenerated, skill)` — design 5.2.
@@ -228,29 +228,46 @@ write it, and a saved game generated under a different value replays wrongly.
 Note `dart run` cannot be parallelised across processes in one checkout (the
 native-asset build in `.dart_tool` races); stagger the launches.
 
-### As-built numbers (2,000 games, skill 0.5, seed 1)
+### As-built numbers (skill 0.5, seed 1, `sizeBiasOffset` 1.6)
 
-| bot | placements p10/med/p90 | score p10/med/p90 | mean sets |
+| bot | games | placements p10/med/p90 | score p10/med/p90 |
 | --- | --- | --- | --- |
-| random | 17 / 23 / 38 | 37 / 61 / 154 | 8.90 |
-| greedy | 65 / 104 / 146 | 403 / 754 / 1234 | 35.44 |
+| random | 2,000 | 11 / 17 / 26 | 35 / 59 / 141 |
+| greedy | 2,000 | 32 / 56 / 89 | 222 / 502 / 916 |
+| smart | 200 | 119 / 215 / 400 | 1,325 / 2,967 / 5,677 |
 
-Assist gate (greedy): rate(A) 0.8219 (n = 1,870), rate(B) 0.6511
-(n = 5,652). Required rate(A) ≥ 0.35 and ≥ rate(B) + 0.10 — PASS.
+Smart runs with a 400-placement cap; 42 of 200 games hit it, so its p90 is a
+lower bound. Bag composition at p = 0.5 by piece size: 1 cell 10.0%,
+2-3 cells 34.0%, 4 cells 39.4%, 5-6 cells 13.9%, 9 cells 2.7%.
+
+### Gates (owner ruling 2026-09-08, replacing the 5.6 bands)
+
+- greedy median placements in 40-90 — 56, PASS.
+- smart median placements in 150-260 — 215, PASS.
+- share of dots at p = 0.5 at most 15% — 10.0%, PASS.
+- assist gate on greedy: rate(A) >= 0.35 and >= rate(B) + 0.08 — 0.7885 vs
+  0.6947 (n = 5,272 / 95), PASS.
+
+The random bot's 20-45 band is retired and its numbers are reported
+ungated: picking uniformly among legal triples never prefers a clearing
+move, so its median moved only 14 to 23 across the whole `sizeBiasOffset`
+sweep while the smart bot moved 134 to over 400. It has almost no
+discriminating power over this constant.
 
 ### Tuning applied
 
 One constant changed from the design: the 5.3 size-bias exponent
-`(cells / 4) ^ (2p - 1)` became `(cells / 4) ^ (2p - 2.6)`
-(`Director.sizeBiasOffset` 1.0 → 2.6). With the design value the greedy bot
-finishes at a median of 44 placements and the random bot at 14, both below
-their 5.6 bands, and no setting of the 5.2 pressure constants can fix it: at
-`p = 0` for the whole game the greedy median is still only 68. Nothing else
-was touched — the catalogue, the base weights and the scoring are as
-designed, and the pressure curve still reaches 0.85 at 40 sets (which the
-assist gate needs, since bucket B only exists if games reach `p >= 0.8`).
-The bag now never reaches the neutral base table; the base table is the
-`p = 1.3` extreme.
+`(cells / 4) ^ (2p - 1)` became `(cells / 4) ^ (2p - 1.6)`
+(`Director.sizeBiasOffset` 1.0 -> 1.6). At the design value the 1-ply greedy
+bot finishes at a median of 41 placements and the smart bot at 134, and the
+bag is heavy in 4-cell pieces. Larger offsets buy length but flood the bag
+with dots: at 2.6 the smart bot never dies (189 of 200 games hit the cap)
+and 27.6% of draws are single cells. 1.6 is the largest offset that keeps
+the smart bot inside 150-260 while dots stay under 15%. Nothing else was
+touched — the catalogue, the base weights and the scoring are as designed,
+and the pressure curve still reaches 0.85 at 40 sets, which the assist gate
+needs since bucket B only exists if games reach `p >= 0.8`. Re-run the
+calibration any time with `dart run bin/sim.dart --sweep`.
 
 ## Traps for callers
 

@@ -25,7 +25,7 @@ class Director {
   static const int assistCandidates = 12;
 
   static const double sizeBiasScale = 2.0;
-  static const double sizeBiasOffsetDefault = 2.6;
+  static const double sizeBiasOffsetDefault = 1.6;
 
   /// Mutable only so `bin/sim.dart --sweep` can calibrate it; the app never
   /// writes it, and a saved game generated under a different value replays

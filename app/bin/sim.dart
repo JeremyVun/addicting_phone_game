@@ -10,11 +10,14 @@ const double assistFillMax = 0.70;
 const double bucketAPressure = 0.30;
 const double bucketBPressure = 0.80;
 const double assistRateMin = 0.35;
-const double assistRateGap = 0.10;
-const Map<String, List<int>> medianPlacementBands = {
-  'random': [20, 45],
-  'greedy': [90, 220],
-  'smart': [90, 220],
+const double assistRateGap = 0.08;
+const double maxDotShare = 0.15;
+/// The random bot's band was retired: picking uniformly among legal triples
+/// never prefers a clearing move, so its median barely moves with the bag.
+const Map<String, List<int>?> medianPlacementBands = {
+  'random': null,
+  'greedy': [40, 90],
+  'smart': [150, 260],
 };
 const List<double> sweepOffsets = [1.0, 1.4, 1.8, 2.2, 2.6];
 const List<List<int>> sizeClasses = [
@@ -114,7 +117,8 @@ void main(List<String> args) {
 
   final run = runBot(botName, games, skill, seed,
       restricted: restricted, maxPlacements: maxPlacements);
-  final band = medianPlacementBands[botName]!;
+  final band = medianPlacementBands[botName];
+  final dotShare = bagShares(0.5).first;
 
   stdout.writeln('bot                $botName');
   stdout.writeln('games              $games');
@@ -134,23 +138,30 @@ void main(List<String> args) {
       '${run.rateA.toStringAsFixed(4)}  (n=${run.nA})');
   stdout.writeln('assist rate(B) p>=$bucketBPressure   '
       '${run.rateB.toStringAsFixed(4)}  (n=${run.nB})');
+  stdout.writeln('dot share at p=0.5         '
+      '${(dotShare * 100).toStringAsFixed(1)}%');
   stdout.writeln('elapsed            ${run.elapsedMs} ms');
 
-  final lengthOk =
-      run.medianPlacements >= band[0] && run.medianPlacements <= band[1];
+  final lengthOk = band == null ||
+      (run.medianPlacements >= band[0] && run.medianPlacements <= band[1]);
   // Design 5.6 measures the assist gate on the greedy bot; random games never
   // reach the pressures of bucket B.
   final assistGated = botName == 'greedy';
   final assistOk =
       run.rateA >= assistRateMin && run.rateA >= run.rateB + assistRateGap;
   final gates = <String>[
-    'median placements ${run.medianPlacements} in ${band[0]}-${band[1]}: '
-        '${lengthOk ? 'PASS' : 'FAIL'}',
+    band == null
+        ? 'median placements ${run.medianPlacements} (ungated)'
+        : 'median placements ${run.medianPlacements} in ${band[0]}-${band[1]}: '
+            '${lengthOk ? 'PASS' : 'FAIL'}',
+    'dot share ${(dotShare * 100).toStringAsFixed(1)}% <= '
+        '${(maxDotShare * 100).toStringAsFixed(0)}%: '
+        '${dotShare <= maxDotShare ? 'PASS' : 'FAIL'}',
     'rate(A) ${run.rateA.toStringAsFixed(4)} >= $assistRateMin and >= rate(B)+'
         '$assistRateGap (${(run.rateB + assistRateGap).toStringAsFixed(4)}): '
         '${!assistGated ? 'n/a' : assistOk ? 'PASS' : 'FAIL'}',
   ];
-  final pass = lengthOk && (!assistGated || assistOk);
+  final pass = lengthOk && dotShare <= maxDotShare && (!assistGated || assistOk);
   stdout.writeln('${pass ? 'PASS' : 'FAIL'}  ${gates.join('  |  ')}');
 }
 
