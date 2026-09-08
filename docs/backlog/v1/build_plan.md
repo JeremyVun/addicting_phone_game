@@ -88,32 +88,48 @@ home, mid-game, a clear, a combo banner, game over; frame time under 16 ms
 during a clear (`flutter run --profile` timeline or DevTools). Done marker:
 `- [x] phase 2b` with the screenshot paths.
 
-## Phase 3 — meta progression
+## Phase 3a — meta package (pure Dart, parallel with phases 1 and 2b)
 
-Base: phase 2b branch. Owns: `app/lib/meta/**`, `app/test/meta/**`,
+Base: main. Owns: `app/lib/meta/**`, `app/test/meta/**`,
+`docs/contracts/economy.md`. No import of `core/`; the app hands meta a
+`GameSummary` value built from the game state.
+
+Builds design 7 (all), 3 (day ordinal, daily bookkeeping), 6.1 (the pure
+`finish` and `doubleCoins` computations with the game-id idempotency of
+section 4), 8.1–8.3 (costs, product table, idempotent `grant`, the
+interstitial policy state and the pure `shouldShow` decision of 8.2), 10
+(the reminder time rule) and 12 (bucket functions). Everything takes
+`DateTime now` explicitly.
+
+Verify gate: `tools/check.sh` green; a unit test for every number in
+design 7, 8.1–8.3 and 10 (level thresholds, coin formula bounds,
+streak/freeze transitions across day boundaries, reward cycle restart,
+each interstitial condition individually, DST-safe ordinal). Done marker:
+`- [x] phase 3a`.
+
+## Phase 3b — meta screens and daily mode wiring
+
+Base: phase 2b branch with phase 3a merged. Owns:
 `app/lib/ui/screens/themes_screen.dart`, `achievements_screen.dart`,
 `daily_result_sheet.dart`, `daily_reward_sheet.dart`, the home screen's
-streak/level/daily widgets (coordinate through `AppController` methods, not
-by editing Play files), `app/lib/services/notifications.dart`,
-`docs/contracts/economy.md`.
+streak/level/daily widgets, `app/lib/services/notifications.dart`, and the
+`AppController` methods that call meta (`finishGame`, `doubleCoins`,
+`claimDailyReward`, `reconcileOnLaunch`, daily game start and second
+attempt).
 
-Builds design 7 (all), 3 (daily mode end to end), 10 (notification prompt
-and reminder), and the level-up/coin lines on the game over sheet.
-Everything in `meta/` is pure Dart with an injected `Clock`.
+Builds the screens of design 9.1 for meta, daily mode end to end (3, 6.1
+daily result), the notification prompt and reminder (10), and the
+level-up/coin lines on the game over sheet.
 
-Seam contract: `PlayerProfile` (json), `Economy` constants, `Levels`,
-`DailyState`, `Achievements.check(profile, gameResult) -> unlocked`,
-`DailyRewards.claimable(profile, now)`. Recorded in `economy.md`.
-
-Verify gate: `tools/check.sh` green; unit tests for every number in design
-7 (level thresholds, coin formula bounds, streak/freeze transitions across
-day boundaries, daily seed, reward cycle restart); emulator screenshots of
-daily card, daily result, themes screen, achievements screen, level-up.
-Done marker: `- [x] phase 3`.
+Verify gate: `tools/check.sh` green; emulator screenshots of the daily
+card, daily result, themes screen, achievements screen, daily reward
+sheet, a level-up on the game over sheet; a fresh install shows no reward
+sheet on day 1 and the reminder permission sheet only after the second
+completed game. Done marker: `- [x] phase 3b`.
 
 ## Phase 4 — monetisation and consent
 
-Base: phase 3 branch. Owns: `app/lib/bootstrap.dart`,
+Base: phase 3b branch. Owns: `app/lib/bootstrap.dart`,
 `app/lib/services/ads.dart`, `purchases.dart`, `analytics.dart`,
 `monetisation.dart` (the `MonetisationHooks` implementation and the
 interstitial policy), `app/lib/ui/screens/shop_screen.dart`,
@@ -173,7 +189,8 @@ probes as its acceptance suite. Done marker: `- [x] phase 7`.
 - [ ] phase 1
 - [ ] phase 2a
 - [ ] phase 2b
-- [ ] phase 3
+- [ ] phase 3a
+- [ ] phase 3b
 - [ ] phase 4
 - [ ] phase 5
 - [ ] phase 6
