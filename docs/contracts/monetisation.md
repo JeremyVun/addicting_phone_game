@@ -195,3 +195,24 @@ outage on the emulator.
 | crash between grant and consume | same replay path; step 2 skips, step 3 finishes |
 | user cancels | synthetic empty-`productID` update; completed if pending, otherwise ignored |
 | analytics endpoint down | events dropped, nothing blocks or throws |
+
+## 9. Not yet verified on a device
+
+Everything above is verified by `tools/check.sh` (analyze clean, 297 tests).
+The emulator drive of phase 4 did **not** run: this machine held three to four
+other sessions' emulators for the whole window and booting a fifth was refused
+on the memory rule in `CLAUDE.md`. Outstanding device checks, in order:
+
+1. the UMP consent form, forced with `--dart-define=SETTLE_FORCE_EEA=true` on a
+   Google Play system image;
+2. a rewarded test ad playing and the continue then being granted on the game
+   over sheet;
+3. an interstitial actually displayed;
+4. the shop in its unavailable state (no Play products exist yet) and, with
+   `--dart-define=SETTLE_FAKE_SERVICES=true`, with fake products and a
+   completed fake purchase;
+5. the settings screen.
+
+For 2 and 3, re-add the two throwaway `ShopFlows` methods and their `kDebugMode`
+settings rows from commit `168b1db` (removed again in `d6973f4`), or reach game
+over with `tools/emu.sh drag`.
