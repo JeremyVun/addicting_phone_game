@@ -13,6 +13,8 @@ dependencies:
   flame_audio: ^2.12.2
   google_mobile_ads: ^9.1.0
   in_app_purchase: ^3.3.0
+  # 0.5.1+ requires Flutter 3.44; this SDK is 3.41.
+  in_app_purchase_android: 0.5.0
   shared_preferences: ^2.5.5
   flutter_local_notifications: ^22.3.0
   timezone: ^0.11.1

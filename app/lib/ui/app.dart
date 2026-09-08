@@ -4,7 +4,8 @@ import '../app.dart';
 import 'navigation.dart';
 import 'screens/achievements_screen.dart';
 import 'screens/home_screen.dart';
-import 'screens/placeholder_screen.dart';
+import 'screens/settings_screen.dart';
+import 'screens/shop_screen.dart';
 import 'play/play_screen.dart';
 import 'screens/themes_screen.dart';
 import 'strings.dart';
@@ -78,11 +79,9 @@ class _SettleAppState extends State<SettleApp> with WidgetsBindingObserver {
             audio: widget.controller.services.audio,
             haptics: widget.controller.services.haptics,
           ),
-          '/shop': (_) =>
-              PlaceholderScreen(title: S.shopTitle, palette: palette),
+          '/shop': (_) => ShopScreen(controller: widget.controller),
           '/themes': (_) => ThemesScreen(controller: widget.controller),
-          '/settings': (_) =>
-              PlaceholderScreen(title: S.settingsTitle, palette: palette),
+          '/settings': (_) => SettingsScreen(controller: widget.controller),
           '/achievements': (_) =>
               AchievementsScreen(controller: widget.controller),
         },
