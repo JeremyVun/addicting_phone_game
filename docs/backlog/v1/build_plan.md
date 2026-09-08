@@ -204,7 +204,7 @@ probes as its acceptance suite. Done marker: `- [x] phase 7`.
 - [x] phase 2b — play (Flame, 9 widget tests, device shots vs exemplar, `tools/emu.sh`, `docs/contracts/visual.md`) and shell (mutation queue, envelope, Home, sheets, `docs/contracts/app-shell.md`) merged and integrated 2026-09-09; 244 tests
 - [x] phase 3a — 129 tests, mutation-checked; `docs/contracts/economy.md`
 - [x] phase 3b — daily mode, streak/reward/themes/achievements screens, real reminder posted on device; `docs/contracts/meta-screens.md`; 271 tests after merge
-- [ ] phase 4
-- [ ] phase 5
+- [x] phase 4 — AdMob (UMP consent, rewarded, interstitial) behind `AdPlatform`, Play Billing behind `BillingGateway`, HTTP analytics, shop and settings; 297 tests on its branch; device checks deferred to the phase 6 wave; `docs/contracts/{monetisation,analytics}.md`
+- [x] phase 5 — strings from Codex (gpt-5.6-sol draft, gpt-6-astra review applied 2026-09-09), icon + feature graphic from Codex image generation, procedural SFX, Manrope bundled; `docs/store/{listing,privacy-policy,data-safety}.md`
 - [ ] phase 6 — tooling done 2026-09-08 (`tools/release.sh`, signing, R8, icon, splash, `docs/store/checklist.md`); the verification wave remains
 - [ ] phase 7
