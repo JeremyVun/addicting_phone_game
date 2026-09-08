@@ -74,8 +74,8 @@ i2/i3 1, i4/i5 2, o2 3, o3/r23 4, l3/l4 5, l5 6, t4/s4/z4 7.
   cell under the piece's anchor after snapping (section 9.2).
 - After a placement, every full row and every full column clears at once.
   A cell belonging to both a full row and a full column clears once.
-- **Game over**: after any placement, if none of the remaining pieces of the
-  current set fits anywhere. Checked after clearing. If the set is exhausted,
+- **Game over**: after any placement, and after any reroll, if none of the
+  remaining pieces of the current set fits anywhere. Checked after clearing. If the set is exhausted,
   the next set is generated first and the check runs on it (generation
   guarantees a fit while the board is under 70% full, section 5.4).
 
@@ -126,7 +126,9 @@ seeded per game. `GameState` (grid, current set with which slots are used,
 score, comboCount, missCount, setsGenerated, continuesUsed, rerollsUsed,
 mode, seed, rng state, status `playing | over`, dayOrdinal for daily, the
 director configuration snapshot `skill` and `restricted` (section 5.5,
-fixed for the life of the game), startedAt, elapsed) serialises to JSON and back with
+fixed for the life of the game), the running facts `placements`,
+`maxCombo` and `boardClears` that achievements and analytics need after
+the game, startedAt, elapsed) serialises to JSON and back with
 no loss; `serialize(deserialize(x)) == x` is a test.
 
 All persistent app state lives in one JSON envelope, `AppData {v, profile,
@@ -267,7 +269,10 @@ shown. The game over sheet then has two states:
    completion (3), writes the profile and deletes the saved game in one
    awaited storage write, and stores a `LastGameResult {gameId, mode,
    score, baseCoins, bonusCoins, totalCoins, xp, levelUps,
-   newAchievements, streakAfter, doubled: false}` where `baseCoins` is the
+   newAchievements, streakAfter, elapsedMs, dayOrdinal?, doubled: false}`
+   (`elapsedMs` feeds the interstitial policy after a relaunch;
+   `dayOrdinal` is set for daily results and the second attempt is
+   offered only while it equals today's ordinal) where `baseCoins` is the
    7.1 per-game amount, `bonusCoins` everything else awarded at this
    finish (first-game-of-day, level-ups, achievements) and `totalCoins`
    their sum. The sheet then shows the result, Double coins (rewarded,
@@ -335,20 +340,35 @@ Glacier, Desert, Storm, Lavender, Ember, Plum, Pearl, Lagoon.
 
 ### 7.4 Daily reward calendar
 On the first launch of each local day a small sheet offers the day's coins:
-day 1–7 of the cycle = 25, 50, 75, 100, 150, 200, 400. The cycle advances on
-consecutive days and restarts at day 1 after a missed day. One claim per
-day; claiming is a button, never automatic.
+day 1–7 of the cycle = 25, 50, 75, 100, 150, 200, 400. The profile holds
+`rewardCycleDay` (1–7), `lastRewardClaimOrdinal` and
+`rewardDismissedOrdinal`. The sheet is offered when today's ordinal is
+after the profile's creation day, differs from `lastRewardClaimOrdinal`
+and differs from `rewardDismissedOrdinal`; it is offered again on every
+return to Home that day until claimed or dismissed once ("Not now" sets
+`rewardDismissedOrdinal = today`). The cycle advances only on a successful
+claim: if `lastRewardClaimOrdinal == today - 1` the claim pays
+`rewardCycleDay` and then advances it (wrapping 7 to 1); otherwise the
+claim pays day 1 and sets `rewardCycleDay = 2`. The first offer after
+install is therefore always day 1. One claim per day; claiming is a
+button, never automatic.
 
 ### 7.5 Streak and streak freeze
 The daily streak is the number of consecutive local days with a completed
-daily attempt. On launch and before recording a completion, the app
-reconciles: `missed = todayOrdinal - lastCompletedOrdinal - 1` (0 when the
-player completed yesterday or today). If `missed == 0` nothing changes.
-If `0 < missed <= freezesHeld`, `missed` freezes are consumed and the
-streak is kept. If `missed > freezesHeld`, the streak resets to 0 and no
-freeze is consumed. Reconciliation runs at most once per missed gap:
-after it, `lastCompletedOrdinal` is set to `todayOrdinal - 1` when the
-streak was kept, so the same gap is never charged twice. Freezes cost
+daily attempt. The profile holds `lastCompletedOrdinal` (null until the
+first completed daily, always factual) and `streakReconciledOrdinal`
+(the ordinal through which reconciliation has been applied, null
+initially). On launch and before recording a completion, the app
+reconciles for `today`: if `lastCompletedOrdinal` is null, nothing.
+Otherwise `from = max(lastCompletedOrdinal, streakReconciledOrdinal ??
+lastCompletedOrdinal)` and `missed = today - from - 1`. If `missed <= 0`
+(completed today or yesterday) nothing changes. If `0 < missed <=
+freezesHeld`, `missed` freezes are consumed and the streak is kept. If
+`missed > freezesHeld`, the streak resets to 0 and no freeze is consumed.
+In both of the last two cases `streakReconciledOrdinal = today - 1`, so a
+gap is charged exactly once and a later launch on the same day is a
+no-op. Completing today's daily then sets `lastCompletedOrdinal = today`
+and increments the streak (from 0 after a reset). Freezes cost
 200 coins, at most 2 held. The home screen shows the streak and whether a
 freeze is held; tapping the streak chip opens the **Streak sheet**: the
 current streak, freezes held (0–2), and a "Buy a freeze" button showing
@@ -453,10 +473,14 @@ Purchase protocol (`PurchaseService`):
    `verificationData.serverVerificationData` (never `purchaseID`, which
    Android derives from a nullable order id). An update in state
    `purchased` or `restored` with an empty token is logged and ignored.
-   Otherwise: if the token is already in `profile.grantedPurchases` (a
-   capped list of the last 200 tokens), skip the grant and go straight to
-   step 3; else grant (coins added, or the non-consumable flag set),
-   append the token, and await the mutation.
+   Otherwise: if the token is in `profile.pendingPurchaseTokens` or
+   `profile.completedPurchaseTokens`, skip the grant and go straight to
+   step 3; else grant (coins added, or the non-consumable flag set), add
+   the token to `pendingPurchaseTokens` (unbounded; it only ever holds
+   purchases whose consume or acknowledge has not yet succeeded), and
+   await the mutation. When step 3 succeeds the token moves to
+   `completedPurchaseTokens` (the last 200 kept). A purchase whose
+   consumption keeps failing therefore stays deduplicated for ever.
 3. Then, whether or not the grant was new: consumables are consumed
    (`InAppPurchaseAndroidPlatformAddition.consumePurchase`) and
    non-consumables acknowledged (`completePurchase`, when
