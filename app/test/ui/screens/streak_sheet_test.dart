@@ -39,7 +39,7 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(find.text(S.streakBuyFreeze(200)));
+    await tester.tap(find.text(S.streakBuyFreeze));
     await tester.pumpAndSettle();
     expect(harness.controller.profile.freezesHeld, 1);
     expect(harness.controller.profile.coins, 60);
@@ -57,7 +57,7 @@ void main() {
     expect(find.text('Get coins'), findsOneWidget);
     expect(harness.controller.canBuyStreakFreeze, isFalse);
 
-    await tester.tap(find.text(S.streakBuyFreeze(200)));
+    await tester.tap(find.text(S.streakBuyFreeze));
     await tester.pumpAndSettle();
     expect(harness.controller.profile.freezesHeld, 1);
     expect(harness.controller.profile.coins, 150);
@@ -77,7 +77,7 @@ void main() {
     expect(find.text('Get coins'), findsNothing);
     expect(find.text('Close'), findsOneWidget);
 
-    await tester.tap(find.text(S.streakBuyFreeze(200)));
+    await tester.tap(find.text(S.streakBuyFreeze));
     await tester.pumpAndSettle();
     expect(harness.controller.profile.coins, 5000);
   });

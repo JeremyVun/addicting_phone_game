@@ -40,16 +40,24 @@ class PrimaryButton extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (showPlayIcon) ...[
-                  Icon(Icons.play_arrow_rounded, color: colours.onAccent, size: 22),
+                  Icon(
+                    Icons.play_arrow_rounded,
+                    color: colours.onAccent,
+                    size: 22,
+                  ),
                   const SizedBox(width: 8),
                 ],
-                Text(
-                  label,
-                  style: manrope(
-                    size: height >= 60 ? 22 : 18,
-                    weight: 800,
-                    color: colours.onAccent,
-                    letterSpacing: -0.2,
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: manrope(
+                      size: height >= 60 ? 22 : 18,
+                      weight: 800,
+                      color: colours.onAccent,
+                      letterSpacing: -0.2,
+                    ),
                   ),
                 ),
                 if (trailing != null) ...[

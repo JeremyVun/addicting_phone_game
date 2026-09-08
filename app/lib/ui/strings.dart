@@ -6,8 +6,7 @@ abstract final class S {
   static const String homeDailyTitle = 'Daily puzzle';
   static const String homeDailyNotPlayed = 'Not played today';
   static String homeDailyDone(Object score) => 'Today’s score: $score';
-  static const String homeDailySecondAttemptAvailable =
-      'One more try today';
+  static const String homeDailySecondAttemptAvailable = 'One more try today';
   static const String homeDailyInProgress = 'In progress';
   static const String homeStreakLabel = 'Day streak';
   static const String homeThemes = 'Themes';
@@ -64,7 +63,7 @@ abstract final class S {
   static String streakFreezes(Object n) => '$n of 2 freezes';
   static const String streakFreezeExplain =
       'A freeze keeps your streak if you miss one day.';
-  static String streakBuyFreeze(Object coins) => 'Buy a freeze for $coins coins';
+  static const String streakBuyFreeze = 'Buy a freeze';
   static const String streakNotEnough = 'Not enough coins';
   static const String streakGetCoins = 'Get coins';
   static const String streakFreezesHeld = 'Freezes';
@@ -83,7 +82,8 @@ abstract final class S {
   static const String shopCoinsMedium = '3,000 coins';
   static const String shopCoinsLarge = '8,000 coins';
   static const String shopAllThemes = 'All themes';
-  static const String shopAllThemesSub = 'Every theme, including any added later';
+  static const String shopAllThemesSub =
+      'Every theme, including any added later';
   static const String shopPurchased = 'Purchased';
   static const String shopPending = 'Pending';
   static const String shopUnavailable =
