@@ -33,3 +33,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/audio/
+    - assets/fonts/OFL.txt
+  fonts:
+    - family: Manrope
+      fonts:
+        - asset: assets/fonts/Manrope-Variable.ttf
