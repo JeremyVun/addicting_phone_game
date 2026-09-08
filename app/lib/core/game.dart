@@ -214,9 +214,7 @@ class Game {
         final diff = _rowFill(state.board, b) - _rowFill(state.board, a);
         return diff != 0 ? diff : a - b;
       });
-    final board = state.board
-        .clearLines(FullLines(rows.take(3).toList()..sort(), const []))
-        .board;
+    final board = state.board.clearRows(rows.take(3)).board;
     final rng = state.rng.clone();
     final set = _generate(
       board,

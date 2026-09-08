@@ -174,6 +174,9 @@ class Progression {
       coins: profile.coins + gameCoins + levelCoins + firstOfDayCoins,
       xp: newXp,
       gamesCompleted: profile.gamesCompleted + 1,
+      classicGamesCompleted: summary.mode == GameMode.classic
+          ? profile.classicGamesCompleted + 1
+          : profile.classicGamesCompleted,
       lastFirstGameOfDayOrdinal: isFirstOfDay
           ? todayOrdinal
           : profile.lastFirstGameOfDayOrdinal,

@@ -63,8 +63,8 @@ class AppController extends ChangeNotifier
     _queue = _queue.then((_) async {
       try {
         final out = fn(_data);
-        _data = out.data;
         await services.storage.save(out.data);
+        _data = out.data;
         notifyListeners();
         completer.complete(out.result);
       } catch (error, stack) {
@@ -72,6 +72,17 @@ class AppController extends ChangeNotifier
       }
     });
     return completer.future;
+  }
+
+  /// The only way to leave a mutation unawaited: a failed write keeps the last
+  /// committed state, is logged, and the queue carries on with the next one.
+  void mutateInBackground(AppData Function(AppData) fn) {
+    unawaited(
+      mutate(fn).then<void>(
+        (_) {},
+        onError: (Object error) => debugPrint('settle: envelope write failed: $error'),
+      ),
+    );
   }
 
   // ---- launch ----
@@ -140,7 +151,7 @@ class AppController extends ChangeNotifier
     mode: core.GameMode.classic,
     seed: Random.secure().nextInt(1 << 32),
     skill: profile.skill,
-    restricted: profile.gamesCompleted == 0,
+    restricted: profile.classicGamesCompleted == 0,
     startedAtMs: services.clock.now().millisecondsSinceEpoch,
   );
 
@@ -184,7 +195,7 @@ class AppController extends ChangeNotifier
   bool get hapticsOn => profile.hapticsEnabled;
 
   @override
-  bool get showFirstGameHints => profile.gamesCompleted == 0;
+  bool get showFirstGameHints => profile.classicGamesCompleted == 0;
 
   @override
   ThemePalette get palette => ThemePalette.all[profile.selectedTheme - 1];
@@ -193,7 +204,7 @@ class AppController extends ChangeNotifier
   core.PlacementResult place(int slot, int row, int col) {
     final result = core.Game.place(state, slot, row, col);
     final next = core.Game.withElapsed(result.state, _elapsedNow);
-    unawaited(mutate((d) => d.copyWith(savedGame: next)));
+    mutateInBackground((d) => d.copyWith(savedGame: next));
     return result;
   }
 
@@ -208,33 +219,46 @@ class AppController extends ChangeNotifier
 
   // ---- reroll (design 6) ----
 
-  bool get canReroll =>
-      _data.savedGame != null &&
-      state.rerollsUsed < Economy.maxRerollsPerGame &&
-      state.status == core.GameStatus.playing;
+  bool get canReroll => _canReroll(_data);
+
+  static bool _canReroll(AppData data) {
+    final game = data.savedGame;
+    return game != null &&
+        game.rerollsUsed < Economy.maxRerollsPerGame &&
+        game.status == core.GameStatus.playing;
+  }
 
   Future<void> rerollWithAd() async {
     if (!canReroll) return;
     if (!await _watchRewarded(RewardedPlacement.reroll)) return;
-    await mutate((d) => d.copyWith(savedGame: core.Game.reroll(d.savedGame!)));
+    await mutate(
+      (d) => _canReroll(d)
+          ? d.copyWith(savedGame: core.Game.reroll(d.savedGame!))
+          : d,
+    );
   }
 
   Future<void> rerollWithCoins() async {
     if (!canReroll || coins < Economy.rerollCost) return;
-    await mutate(
-      (d) => d.copyWith(
+    await mutate((d) {
+      if (!_canReroll(d) || d.profile.coins < Economy.rerollCost) return d;
+      return d.copyWith(
         profile: d.profile.copyWith(coins: d.profile.coins - Economy.rerollCost),
         savedGame: core.Game.reroll(d.savedGame!),
-      ),
-    );
+      );
+    });
   }
 
   // ---- continue and game over (design 6.1) ----
 
-  bool get continueAvailable =>
-      _data.savedGame != null &&
-      state.status == core.GameStatus.over &&
-      state.continuesUsed < Economy.maxContinuesPerGame;
+  bool get continueAvailable => _continueAvailable(_data);
+
+  static bool _continueAvailable(AppData data) {
+    final game = data.savedGame;
+    return game != null &&
+        game.status == core.GameStatus.over &&
+        game.continuesUsed < Economy.maxContinuesPerGame;
+  }
 
   ContinuePayment get continuePayment => profile.adFree
       ? ContinuePayment.free
@@ -250,7 +274,9 @@ class AppController extends ChangeNotifier
 
   Future<void> continueGame() async {
     if (!continueAvailable) return;
-    switch (continuePayment) {
+    // The ad clears itself at show time, so the price is fixed before it runs.
+    final payment = continuePayment;
+    switch (payment) {
       case ContinuePayment.free:
         break;
       case ContinuePayment.rewarded:
@@ -261,15 +287,23 @@ class AppController extends ChangeNotifier
           return;
         }
     }
-    final payWithCoins = continuePayment == ContinuePayment.coins;
-    await mutate(
-      (d) => d.copyWith(
-        profile: payWithCoins
-            ? d.profile.copyWith(coins: d.profile.coins - Economy.continueCost)
-            : d.profile,
-        savedGame: core.Game.continueGame(d.savedGame!),
-      ),
-    );
+    final granted = await mutateWith<bool>((d) {
+      final payWithCoins = payment == ContinuePayment.coins;
+      if (!_continueAvailable(d) ||
+          (payWithCoins && d.profile.coins < Economy.continueCost)) {
+        return (data: d, result: false);
+      }
+      return (
+        data: d.copyWith(
+          profile: payWithCoins
+              ? d.profile.copyWith(coins: d.profile.coins - Economy.continueCost)
+              : d.profile,
+          savedGame: core.Game.continueGame(d.savedGame!),
+        ),
+        result: true,
+      );
+    });
+    if (!granted) return;
     _markResumed(_data.savedGame!);
     navigator.dismissSheet();
     navigator.goPlay();
@@ -394,50 +428,30 @@ class AppController extends ChangeNotifier
   // ---- AdSink (design 8.2) ----
 
   @override
-  void onInterstitialShown() => unawaited(
-    mutate(
-      (d) => d.copyWith(
-        profile: InterstitialPolicy.afterInterstitialShown(
-          d.profile,
-          services.clock.now(),
-        ),
-      ),
+  void onInterstitialShown() => mutateInBackground(
+    (d) => d.copyWith(
+      profile: InterstitialPolicy.afterInterstitialShown(d.profile, services.clock.now()),
     ),
   );
 
   @override
-  void onInterstitialClosed() => unawaited(
-    mutate(
-      (d) => d.copyWith(
-        profile: InterstitialPolicy.afterInterstitialClosed(
-          d.profile,
-          services.clock.now(),
-        ),
-      ),
+  void onInterstitialClosed() => mutateInBackground(
+    (d) => d.copyWith(
+      profile: InterstitialPolicy.afterInterstitialClosed(d.profile, services.clock.now()),
     ),
   );
 
   @override
-  void onRewardedShown() => unawaited(
-    mutate(
-      (d) => d.copyWith(
-        profile: InterstitialPolicy.afterRewardedShown(
-          d.profile,
-          services.clock.now(),
-        ),
-      ),
+  void onRewardedShown() => mutateInBackground(
+    (d) => d.copyWith(
+      profile: InterstitialPolicy.afterRewardedShown(d.profile, services.clock.now()),
     ),
   );
 
   @override
-  void onRewardedClosed() => unawaited(
-    mutate(
-      (d) => d.copyWith(
-        profile: InterstitialPolicy.afterRewardedClosed(
-          d.profile,
-          services.clock.now(),
-        ),
-      ),
+  void onRewardedClosed() => mutateInBackground(
+    (d) => d.copyWith(
+      profile: InterstitialPolicy.afterRewardedClosed(d.profile, services.clock.now()),
     ),
   );
 

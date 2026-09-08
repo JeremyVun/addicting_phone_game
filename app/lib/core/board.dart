@@ -19,7 +19,8 @@ class ClearResult {
 
   final Board board;
 
-  /// Row-major, each cell once even when it sits in a cleared row and column.
+  /// Row-major, only cells that held a block, each once even when it sits in
+  /// both a cleared row and a cleared column.
   final List<Cell> cells;
 }
 
@@ -129,16 +130,27 @@ class Board {
 
   ClearResult clearLines(FullLines lines) {
     if (lines.isEmpty) return ClearResult(this, const []);
+    final rowSet = lines.rows.toSet();
+    final colSet = lines.cols.toSet();
+    return _erase((r, c) => rowSet.contains(r) || colSet.contains(c));
+  }
+
+  /// Design 6's continue: a demolition of whatever occupies [rows].
+  ClearResult clearRows(Iterable<int> rows) {
+    final rowSet = rows.toSet();
+    if (rowSet.isEmpty) return ClearResult(this, const []);
+    return _erase((r, c) => rowSet.contains(r));
+  }
+
+  ClearResult _erase(bool Function(int row, int col) selected) {
     final colours = Uint8List.fromList(_colours);
     final rowMasks = Uint8List.fromList(_rowMasks);
     final colMasks = Uint8List.fromList(_colMasks);
     final cleared = <Cell>[];
-    final rowSet = lines.rows.toSet();
-    final colSet = lines.cols.toSet();
     var filled = filledCount;
     for (var r = 0; r < size; r++) {
       for (var c = 0; c < size; c++) {
-        if (!rowSet.contains(r) && !colSet.contains(c)) continue;
+        if (colours[r * size + c] == 0 || !selected(r, c)) continue;
         cleared.add(Cell(r, c));
         colours[r * size + c] = 0;
         rowMasks[r] &= ~(1 << c) & fullMask;

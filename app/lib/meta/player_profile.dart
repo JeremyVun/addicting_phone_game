@@ -10,6 +10,7 @@ class PlayerProfile {
     this.coins = 0,
     this.xp = 0,
     this.gamesCompleted = 0,
+    this.classicGamesCompleted = 0,
     this.bestClassic = 0,
     this.bestDaily = 0,
     this.skill = Economy.initialSkill,
@@ -56,12 +57,15 @@ class PlayerProfile {
     createdAtMs: now.millisecondsSinceEpoch,
   );
 
-  static const int version = 1;
+  static const int version = 2;
   static const int defaultThemeSlot = 1;
 
   final int coins;
   final int xp;
   final int gamesCompleted;
+
+  /// Design 5.5: only classic games spend the first-game restriction.
+  final int classicGamesCompleted;
   final int bestClassic;
   final int bestDaily;
   final double skill;
@@ -104,6 +108,7 @@ class PlayerProfile {
     int? coins,
     int? xp,
     int? gamesCompleted,
+    int? classicGamesCompleted,
     int? bestClassic,
     int? bestDaily,
     double? skill,
@@ -139,6 +144,8 @@ class PlayerProfile {
     coins: coins ?? this.coins,
     xp: xp ?? this.xp,
     gamesCompleted: gamesCompleted ?? this.gamesCompleted,
+    classicGamesCompleted:
+        classicGamesCompleted ?? this.classicGamesCompleted,
     bestClassic: bestClassic ?? this.bestClassic,
     bestDaily: bestDaily ?? this.bestDaily,
     skill: skill ?? this.skill,
@@ -186,6 +193,7 @@ class PlayerProfile {
     'coins': coins,
     'xp': xp,
     'gamesCompleted': gamesCompleted,
+    'classicGamesCompleted': classicGamesCompleted,
     'bestClassic': bestClassic,
     'bestDaily': bestDaily,
     'skill': skill,
@@ -223,6 +231,9 @@ class PlayerProfile {
     coins: json['coins'] as int? ?? 0,
     xp: json['xp'] as int? ?? 0,
     gamesCompleted: json['gamesCompleted'] as int? ?? 0,
+    classicGamesCompleted: json['classicGamesCompleted'] as int? ??
+        json['gamesCompleted'] as int? ??
+        0,
     bestClassic: json['bestClassic'] as int? ?? 0,
     bestDaily: json['bestDaily'] as int? ?? 0,
     skill: (json['skill'] as num?)?.toDouble() ?? Economy.initialSkill,
@@ -278,6 +289,7 @@ class PlayerProfile {
     coins,
     xp,
     gamesCompleted,
+    classicGamesCompleted,
     bestClassic,
     bestDaily,
     skill,

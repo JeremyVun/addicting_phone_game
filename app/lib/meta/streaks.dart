@@ -8,10 +8,11 @@ import 'player_profile.dart';
 class Streaks {
   const Streaks._();
 
+  /// A completion for an ordinal at or behind the anchor is a clock moved
+  /// backwards, and design 7.5 rules that it never disturbs a live streak.
   static PlayerProfile onDailyCompleted(PlayerProfile profile, int ordinal) {
-    final last = profile.lastCompletedOrdinal;
-    if (last == ordinal) return profile;
     final anchor = _anchor(profile);
+    if (anchor != null && ordinal <= anchor) return profile;
     final streak = anchor == ordinal - 1 ? profile.streak + 1 : 1;
     return profile.copyWith(streak: streak, lastCompletedOrdinal: ordinal);
   }
