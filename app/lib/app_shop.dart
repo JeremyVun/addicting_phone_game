@@ -67,6 +67,19 @@ extension ShopFlows on AppController {
     shop.showMessage(S.shopRestored);
   }
 
+  // TEMPORARY debug drives; removed before the final commit.
+  Future<void> debugShowInterstitial() => services.ads.showInterstitial();
+
+  Future<void> debugGameOver() async {
+    await startClassic();
+    await mutate(
+      (d) => d.copyWith(
+        savedGame: d.savedGame?.copyWith(status: core.GameStatus.over),
+      ),
+    );
+    navigator.showGameOver();
+  }
+
   /// Phase 3b owns the real one; the duplicate is removed at integration.
   Future<void> setRemindersEnabled(bool on) => mutate(
     (d) => d.copyWith(profile: d.profile.copyWith(remindersEnabled: on)),

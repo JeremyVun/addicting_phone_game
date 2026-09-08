@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -75,6 +76,18 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
               _VersionRow(palette: palette),
+              if (kDebugMode) ...[
+                _TapRow(
+                  label: 'debug: interstitial',
+                  palette: palette,
+                  onTap: controller.debugShowInterstitial,
+                ),
+                _TapRow(
+                  label: 'debug: game over',
+                  palette: palette,
+                  onTap: controller.debugGameOver,
+                ),
+              ],
             ],
           ),
         ),
