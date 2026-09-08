@@ -17,6 +17,7 @@ import '../ui/theme/typography.dart';
 void main() => runApp(const HarnessApp());
 
 enum Scenario {
+  perf('perf'),
   empty('empty'),
   mid('mid'),
   clearMoment('clear'),
@@ -163,12 +164,48 @@ class _HarnessAppState extends State<HarnessApp> {
   final _host = HarnessHost();
   final _audio = FlameAudioService();
   final _haptics = PlatformHapticsService();
+  final _frames = <int>[];
+  final _builds = <int>[];
+  final _rasters = <int>[];
   bool _menuOpen = false;
 
   @override
   void initState() {
     super.initState();
     _host.addListener(() => setState(() {}));
+    // gfxinfo counts HWUI frames, which Flutter on Impeller does not produce,
+    // so frame times have to come from Flutter's own timings.
+    WidgetsBinding.instance.addTimingsCallback((timings) {
+      for (final t in timings) {
+        _frames.add(t.totalSpan.inMicroseconds);
+        _builds.add(t.buildDuration.inMicroseconds);
+        _rasters.add(t.rasterDuration.inMicroseconds);
+      }
+    });
+  }
+
+  void _reportFrames() {
+    if (_frames.isEmpty) {
+      debugPrint('PERF no frames');
+      return;
+    }
+    String summary(String label, List<int> raw) {
+      final us = List<int>.of(raw)..sort();
+      String pct(double p) =>
+          (us[((us.length - 1) * p).round()] / 1000.0).toStringAsFixed(1);
+      final janky = raw.where((v) => v > 16667).length;
+      return '$label n=${us.length} '
+          'janky=${(100 * janky / us.length).toStringAsFixed(1)}% '
+          'p50=${pct(0.50)} p90=${pct(0.90)} p95=${pct(0.95)} '
+          'p99=${pct(0.99)} max=${(us.last / 1000).toStringAsFixed(1)}';
+    }
+
+    debugPrint('PERF total  ${summary('', _frames)}');
+    debugPrint('PERF build  ${summary('', _builds)}');
+    debugPrint('PERF raster ${summary('', _rasters)}');
+    _frames.clear();
+    _builds.clear();
+    _rasters.clear();
   }
 
   @override
@@ -241,7 +278,11 @@ class _HarnessAppState extends State<HarnessApp> {
                 children: [
                   for (final s in Scenario.values)
                     _chip(p, s.label, () {
-                      _host.load(s);
+                      if (s == Scenario.perf) {
+                        _reportFrames();
+                      } else {
+                        _host.load(s);
+                      }
                       setState(() => _menuOpen = false);
                     }),
                 ],

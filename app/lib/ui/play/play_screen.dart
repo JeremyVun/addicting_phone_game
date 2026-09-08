@@ -184,12 +184,18 @@ class _Hud extends StatelessWidget {
               ),
             ),
           if (showBest)
+            // Bottom-aligned in the score numeral's own box, so Best answers
+            // the score on its baseline whatever the font metrics do.
             Positioned(
               right: geom.pad,
-              top: geom.scoreTop + 18 * geom.s,
-              child: Text(
-                formatScore(host.bestScore),
-                style: PlayType.best(geom.s, p.muted),
+              top: geom.scoreTop,
+              height: 33.1 * geom.s,
+              child: Align(
+                alignment: Alignment.bottomRight,
+                child: Text(
+                  formatScore(host.bestScore),
+                  style: PlayType.best(geom.s, p.muted),
+                ),
               ),
             ),
           Positioned(

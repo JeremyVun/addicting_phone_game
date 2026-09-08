@@ -8,7 +8,7 @@ import '../theme/palettes.dart';
 class TilePainter {
   TilePainter(this.palette) {
     _empty.color = palette.empty;
-    _emptyInset.color = const Color(0x59000000);
+    _emptyInset.color = const Color(0x3D000000);
     final lit = palette.lightGround;
     _highlight.color = lit ? const Color(0x66FFFFFF) : const Color(0x6BFFFFFF);
     _shade.color = lit ? const Color(0x33000000) : const Color(0x4D000000);
@@ -35,6 +35,7 @@ class TilePainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
     _dot.color = palette.hairline;
+    _seat.color = lit ? const Color(0x1F000000) : const Color(0x59000000);
     _shadow
       ..color = const Color(0xD9000000)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
@@ -51,6 +52,7 @@ class TilePainter {
   final _glow = Paint();
   final _rim = Paint();
   final _dot = Paint();
+  final _seat = Paint();
   final _shadow = Paint();
   final _fills = List<Paint>.filled(8, Paint());
   final _ghostFills = List<Paint>.filled(8, Paint());
@@ -66,7 +68,7 @@ class TilePainter {
     canvas.drawRRect(rr, _empty);
     canvas.drawRRect(
       RRect.fromRectAndCorners(
-        Rect.fromLTWH(r.left, r.top, r.width, radius * 0.22 + 1),
+        Rect.fromLTWH(r.left, r.top, r.width, radius * 0.32),
         topLeft: Radius.circular(radius),
         topRight: Radius.circular(radius),
       ),
@@ -104,6 +106,12 @@ class TilePainter {
     bool rim,
   ) {
     final rad = Radius.circular(radius);
+    // The comp's `0 1px 2px` tile shadow, as one more rrect rather than a
+    // blur: 64 mask filters a frame is the one thing this render cannot buy.
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(r.translate(0, bottom * 0.7), rad),
+      _seat,
+    );
     canvas.drawRRect(RRect.fromRectAndRadius(r, rad), fill);
     canvas.drawRRect(
       RRect.fromRectAndCorners(

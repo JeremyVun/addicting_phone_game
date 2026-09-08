@@ -12,7 +12,11 @@
 #        tools/emu.sh release <x> <y>                          lift the finger a `hold` left down
 #        tools/emu.sh size                                    print the current display size in pixels
 #        tools/emu.sh logcat [seconds]                        flutter-tagged logcat
-#        tools/emu.sh perf reset | tools/emu.sh perf dump     gfxinfo jank percentage and frame percentiles
+#        tools/emu.sh perf reset | tools/emu.sh perf dump     gfxinfo (see the trap below)
+#
+# gfxinfo counts HWUI frames; Flutter on Impeller draws to its own surface and
+# reports none, so `perf` prints zeros. Real frame times come from the harness:
+# open its menu and tap `perf`, then read the PERF line out of `emu.sh logcat`.
 #
 # Coordinates are display pixels of the CURRENT size (see `size`), which may be a
 # `wm size` override set by someone else; never reset it.
@@ -31,17 +35,19 @@ case "$cmd" in
 
 install)
   entry=lib/main.dart
+  mode=debug
   while [ $# -gt 0 ]; do
     case "$1" in
       -t) entry="$2"; shift 2 ;;
+      -p) mode=profile; shift ;;
       *) shift ;;
     esac
   done
   cd "$ROOT/app"
-  flutter build apk --debug -t "$entry"
+  flutter build apk --"$mode" -t "$entry"
   # The emulator's /data runs out of room after a few -r installs.
   adbd uninstall "$PKG" >/dev/null 2>&1 || true
-  adbd install -t build/app/outputs/flutter-apk/app-debug.apk
+  adbd install -t "build/app/outputs/flutter-apk/app-$mode.apk"
   ;;
 
 launch)
