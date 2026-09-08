@@ -1,6 +1,6 @@
 # Data safety form answers
 
-Drafted by Codex (gpt-5.6-sol) 2026-09-08. Source of truth for what the app does: docs/backlog/v1/design.md sections 8 and 12.
+Drafted by Codex (gpt-5.6-sol) 2026-09-08. Source of truth for what the app does: docs/contracts/monetisation.md and docs/contracts/analytics.md.
 
 
 - **Settle:** No personal data is collected or shared by the app itself.

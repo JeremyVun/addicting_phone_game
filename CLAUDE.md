@@ -6,7 +6,9 @@ visual authority: [docs/styles.md](docs/styles.md); as-built law, one file
 per seam: `docs/contracts/` (core-engine, economy, app-shell, meta-screens,
 monetisation, analytics, visual, copy). Plugin notes for builders:
 [docs/references/README.md](docs/references/README.md). Store to-dos:
-[docs/store/checklist.md](docs/store/checklist.md).
+[docs/store/checklist.md](docs/store/checklist.md). Contracts cite "design N.N":
+that is the v1 design doc, kept only in git history
+(`git show d9dc5a9:docs/backlog/v1/design.md`).
 
 ## Structure
 

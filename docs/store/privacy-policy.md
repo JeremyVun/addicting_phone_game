@@ -1,6 +1,6 @@
 # Privacy policy for Settle
 
-Drafted by Codex (gpt-5.6-sol) 2026-09-08 from the facts in docs/backlog/v1/design.md sections 8 and 12. Host this text at a public URL and put the URL in Play Console. Replace every [placeholder] first.
+Drafted by Codex (gpt-5.6-sol) 2026-09-08 from the facts in docs/contracts/monetisation.md and docs/contracts/analytics.md. Host this text at a public URL and put the URL in Play Console. Replace every [placeholder] first.
 
 
 Effective date: [date]

@@ -5,7 +5,7 @@ Usage: tools/sfx/gen_sfx.py [--out DIR] [--play]
   --play  previews each file with afplay after writing (macOS).
 
 Files: place, clear_1..clear_8 (pitch rises a semitone per combo step), combo_3, combo_5,
-combo_8, board_clear, game_over, button, coin, level_up. Design: docs/backlog/v1/design.md 9.4.
+combo_8, board_clear, game_over, button, coin, level_up. Sound design: docs/contracts/visual.md.
 """
 import argparse, os, subprocess, wave
 import numpy as np
