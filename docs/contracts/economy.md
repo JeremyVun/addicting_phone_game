@@ -131,11 +131,10 @@ in the unchanged case it sets `lastCompletedOrdinal = ordinal`. Reading the *anc
 rather than `lastCompletedOrdinal` is what makes a freeze work: reconcile
 marks yesterday as kept, so today's daily continues the run.
 
-Design 7.5's companion clause — a daily cannot be *started* for an ordinal
-below `lastCompletedOrdinal` — is **not** built: the probe `a device clock
-moved backwards never destroys a streak` plays a daily on the rolled-back day,
-so the start is still allowed and only the completion is ignored. Owner call
-pending (see `docs/backlog/v1/review-findings.md`).
+A daily for a stale ordinal (device date behind the anchor, as after a
+westward date-line crossing) may still be started and played; its best and
+attempt are recorded under that ordinal and only the completion's effect on
+the streak is ignored (design 7.5, ruled 2026-09-09).
 
 Two rules the design left open, decided here:
 
