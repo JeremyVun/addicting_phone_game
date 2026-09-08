@@ -45,7 +45,7 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 34),
+              const SizedBox(height: 30),
               Text(
                 S.appName.toUpperCase(),
                 style: manrope(
@@ -55,6 +55,7 @@ class HomeScreen extends StatelessWidget {
                   letterSpacing: 19 * 0.42,
                 ),
               ),
+              const SizedBox(height: 30),
               Expanded(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
@@ -62,7 +63,8 @@ class HomeScreen extends StatelessWidget {
                       math.min(constraints.maxWidth, constraints.maxHeight),
                       240.0,
                     );
-                    return Center(
+                    return Align(
+                      alignment: Alignment.topCenter,
                       child: SizedBox.square(
                         dimension: side,
                         child: CustomPaint(painter: _MotifPainter(palette)),

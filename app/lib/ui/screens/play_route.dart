@@ -188,7 +188,9 @@ class _TraySlot extends StatelessWidget {
         color: selected ? palette.accent : const Color(0x00000000),
       ),
     ),
-    child: CustomPaint(painter: _PiecePainter(piece, palette)),
+    child: SizedBox.expand(
+      child: CustomPaint(painter: _PiecePainter(piece, palette)),
+    ),
   );
 }
 

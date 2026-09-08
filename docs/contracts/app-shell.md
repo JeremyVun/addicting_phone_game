@@ -178,3 +178,8 @@ to later phases.
   key the sheet on `savedGame == null`.
 - `bestScoreFor` is read from the profile *after* `finishGame`, so "new best"
   is `profile.best == result.score`, not a stored flag.
+- `PlayHost.state` is non-nullable but `finishGame()` deletes `savedGame` while
+  the play screen is still mounted under the sheet. The controller keeps the
+  finished `GameState` in `_finishedGame` and `state` falls back to it, so the
+  board stays drawn behind the result sheet. The emulator drive caught this as
+  a null-check crash; do not "simplify" it back to `savedGame!`.

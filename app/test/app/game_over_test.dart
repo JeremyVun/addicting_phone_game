@@ -92,6 +92,20 @@ void main() {
     );
   });
 
+  test('the play host keeps the finished board after finishGame', () async {
+    final harness = Harness(now: now);
+    await harness.start();
+    await harness.controller.startClassic();
+    await playToGameOver(harness.controller);
+    final finished = harness.controller.state;
+
+    await harness.controller.endGame();
+
+    expect(harness.controller.currentGame, isNull);
+    expect(harness.controller.state.id, finished.id);
+    expect(harness.controller.state.board, finished.board);
+  });
+
   test('goHome clears the pending result', () async {
     final harness = Harness(now: now);
     await harness.start();

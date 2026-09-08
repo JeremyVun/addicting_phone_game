@@ -31,6 +31,10 @@ class AppController extends ChangeNotifier
   int _elapsedAtResume = 0;
   int _resumedAtMs = 0;
 
+  /// `finishGame` deletes `savedGame`, but the play screen is still mounted
+  /// under the result sheet and must keep drawing the board it ended on.
+  core.GameState? _finishedGame;
+
   AppData get data => _data;
 
   /// Completes when every queued mutation has been written.
@@ -145,7 +149,7 @@ class AppController extends ChangeNotifier
   // ---- PlayHost ----
 
   @override
-  core.GameState get state => _data.savedGame!;
+  core.GameState get state => _data.savedGame ?? _finishedGame!;
 
   @override
   int get bestScore {
@@ -269,6 +273,7 @@ class AppController extends ChangeNotifier
   Future<LastGameResult?> finishGame() async {
     final game = _data.savedGame;
     if (game == null) return _data.lastResult;
+    _finishedGame = game;
     final summary = GameSummary(
       mode: game.mode == core.GameMode.daily ? GameMode.daily : GameMode.classic,
       gameId: game.id,

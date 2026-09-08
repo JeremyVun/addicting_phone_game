@@ -25,7 +25,7 @@ class CoinChip extends StatelessWidget {
     mainAxisSize: MainAxisSize.min,
     children: [
       Icon(
-        Icons.circle_outlined,
+        Icons.adjust,
         size: size,
         color: accented ? palette.accent : palette.muted,
       ),
