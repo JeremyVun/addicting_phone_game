@@ -93,7 +93,7 @@ void main() {
 
   test('skill updates on classic only (7.6)', () {
     final classic = Progression.finish(PlayerProfile(), game(score: 3000), now);
-    expect(classic.profile.skill, closeTo(0.8 * 0.35 + 0.2 * 0.5, 1e-12));
+    expect(classic.profile.skill, closeTo(0.8 * 0.35 + 0.2 * 0.75, 1e-12));
 
     final daily = Progression.finish(
       PlayerProfile(),
