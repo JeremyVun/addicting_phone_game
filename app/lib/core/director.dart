@@ -24,6 +24,9 @@ class Director {
   static const double assistChanceBase = 0.45;
   static const int assistCandidates = 12;
 
+  static const double sizeBiasScale = 2.0;
+  static const double sizeBiasOffset = 2.6;
+
   static const int fitTriesAtPressure = 10;
   static const int fitTriesTotal = 30;
 
@@ -58,10 +61,10 @@ class Director {
   static double pieceWeight(Piece piece, double p) =>
       piece.familyWeight /
       piece.familyRotations *
-      math.pow(piece.size / 4, 2 * p - 1);
+      math.pow(piece.size / 4, sizeBiasScale * p - sizeBiasOffset);
 
   static List<double> weights(List<Piece> pool, double p) {
-    final exponent = 2 * p - 1;
+    final exponent = sizeBiasScale * p - sizeBiasOffset;
     final factors = <int, double>{};
     return [
       for (final piece in pool)

@@ -84,9 +84,13 @@ class Game {
 
   static const int onboardingSets = 3;
 
-  static double pressureAt(GameState state) => restrictedAt(state)
-      ? 0.0
-      : Director.pressure(state.setsGenerated, state.skill);
+  static double pressureFor(int setsGenerated, double skill, bool firstGameEver) =>
+      (firstGameEver && setsGenerated < onboardingSets)
+          ? 0.0
+          : Director.pressure(setsGenerated, skill);
+
+  static double pressureAt(GameState state) =>
+      pressureFor(state.setsGenerated, state.skill, state.firstGameEver);
 
   static List<Piece> _generate(
     Board board,
@@ -98,8 +102,7 @@ class Game {
     double? forcedPressure,
   }) {
     final restricted = firstGameEver && setsGenerated < onboardingSets;
-    final p = forcedPressure ??
-        (restricted ? 0.0 : Director.pressure(setsGenerated, skill));
+    final p = forcedPressure ?? pressureFor(setsGenerated, skill, firstGameEver);
     return Director.generateSet(board, rng, p, count, restricted: restricted);
   }
 
