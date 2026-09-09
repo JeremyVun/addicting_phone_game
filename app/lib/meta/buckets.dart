@@ -24,6 +24,16 @@ class Buckets {
     return '30+';
   }
 
+  /// 7 is its own bucket because D7 retention keys on it.
+  static String sinceInstall(int days) {
+    if (days <= 0) return '0';
+    if (days == 1) return '1';
+    if (days < 7) return '2-6';
+    if (days == 7) return '7';
+    if (days < 30) return '8-29';
+    return '30+';
+  }
+
   static String level(int level) {
     if (level <= 4) return '2-4';
     if (level < 10) return '5-9';

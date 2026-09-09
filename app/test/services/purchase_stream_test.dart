@@ -164,6 +164,16 @@ void main() {
     ]);
     expect(sink.calls, ['grant:${Products.themePackAll}:tok-c', 'completed:tok-c']);
     expect(analytics.named('purchase_completed'), isEmpty);
+    expect(analytics.named('revenue_usd_micros'), isEmpty);
+  });
+
+  test('a purchase counts its USD list price as revenue', () async {
+    await service.handleUpdates([
+      update(Products.coinsSmall, PurchaseStatus.purchased, token: 'tok-d'),
+    ]);
+    final revenue = analytics.named('revenue_usd_micros').single;
+    expect(revenue.n, 990000);
+    expect(revenue.dims, {'source': 'iap', 'product': Products.coinsSmall});
   });
 
   test('an empty product id is completed and otherwise ignored', () async {

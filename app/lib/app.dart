@@ -10,6 +10,7 @@ import 'core/game_state.dart' as core;
 import 'meta/meta.dart';
 import 'navigator.dart';
 import 'services/ads.dart';
+import 'services/analytics.dart';
 import 'services/purchases.dart';
 import 'services/storage.dart';
 import 'ui/play/play_host.dart';
@@ -117,7 +118,42 @@ class AppController extends ChangeNotifier
     if (game != null) _markResumed(game);
     services.purchases.start(this);
     services.ads.start(this);
+    if (loaded == null) services.analytics.count('installed');
     services.analytics.count('session_started', {'first': '${loaded == null}'});
+    await markActive();
+  }
+
+  /// The first call of a local calendar day emits the day's activity events,
+  /// but only once the write that claims the day has landed.
+  Future<void> markActive() async {
+    final today = Calendar.dayOrdinal(services.clock.now());
+    List<AnalyticsEvent> events;
+    try {
+      events = await mutateWith<List<AnalyticsEvent>>((d) {
+        if (d.profile.lastActiveDayOrdinal == today) {
+          return (data: d, result: const <AnalyticsEvent>[]);
+        }
+        final sinceInstall = today - Calendar.dayOrdinal(d.profile.createdAt);
+        return (
+          data: d.copyWith(
+            profile: d.profile.copyWith(lastActiveDayOrdinal: today),
+          ),
+          result: [
+            AnalyticsEvent('day_active', {
+              'since_install': Buckets.sinceInstall(sinceInstall),
+            }),
+            if (sinceInstall == 1) const AnalyticsEvent('retained_d1', {}),
+            if (sinceInstall == 7) const AnalyticsEvent('retained_d7', {}),
+          ],
+        );
+      });
+    } catch (error) {
+      debugPrint('settle: envelope write failed: $error');
+      return;
+    }
+    for (final event in events) {
+      services.analytics.count(event.name, event.dims);
+    }
   }
 
   /// What the first frame should show (design 6.1: a pending result reopens its
@@ -448,7 +484,7 @@ class AppController extends ChangeNotifier
 
   @override
   void onInterstitialShown() {
-    services.analytics.count('interstitial_shown');
+    services.analytics.count('ad_shown', {'kind': 'interstitial'});
     mutateInBackground(
       (d) => d.copyWith(
         profile: InterstitialPolicy.afterInterstitialShown(
@@ -470,14 +506,17 @@ class AppController extends ChangeNotifier
   );
 
   @override
-  void onRewardedShown() => mutateInBackground(
-    (d) => d.copyWith(
-      profile: InterstitialPolicy.afterRewardedShown(
-        d.profile,
-        services.clock.now(),
+  void onRewardedShown() {
+    services.analytics.count('ad_shown', {'kind': 'rewarded'});
+    mutateInBackground(
+      (d) => d.copyWith(
+        profile: InterstitialPolicy.afterRewardedShown(
+          d.profile,
+          services.clock.now(),
+        ),
       ),
-    ),
-  );
+    );
+  }
 
   @override
   void onRewardedClosed() => mutateInBackground(

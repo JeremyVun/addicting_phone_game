@@ -229,7 +229,9 @@ void main() {
     await shows.controller.idle;
 
     expect(shows.ads.interstitialShows, 1);
-    expect(shows.analytics.named('interstitial_shown'), hasLength(1));
+    expect(shows.analytics.named('ad_shown').single.dims, {
+      'kind': 'interstitial',
+    });
     expect(shows.controller.profile.gamesSinceInterstitial, 0);
     expect(
       shows.controller.profile.lastInterstitialClosedAt,
@@ -247,7 +249,7 @@ void main() {
     failed.ads.showFails = true;
     await failed.controller.playAgain();
     await failed.controller.idle;
-    expect(failed.analytics.named('interstitial_shown'), isEmpty);
+    expect(failed.analytics.named('ad_shown'), isEmpty);
     expect(failed.controller.profile.gamesSinceInterstitial, 6);
     expect(failed.controller.profile.lastInterstitialClosedAt, 0);
   });

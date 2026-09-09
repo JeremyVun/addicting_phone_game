@@ -7,6 +7,7 @@ import 'package:settle/core/game_state.dart' as core;
 import 'package:settle/meta/meta.dart';
 import 'package:settle/services/storage.dart';
 
+import '../probes/support.dart';
 import 'harness.dart';
 
 String _saved(AppData data) => jsonEncode(data.toJson());
@@ -33,7 +34,7 @@ void main() {
 
     expect(harness.controller.profile.analyticsUnitId, isNotEmpty);
     expect(harness.controller.profile.createdAtMs, now.millisecondsSinceEpoch);
-    expect(harness.storage.writes, hasLength(1));
+    expect(harness.storage.writes, hasLength(2), reason: 'reconcile, then markActive');
     expect(harness.analytics.named('session_started').single.dims, {'first': 'true'});
   });
 
@@ -162,6 +163,111 @@ void main() {
     final reloaded = await harness.storage.load();
     expect(reloaded!.profile.soundEnabled, isFalse);
     expect(reloaded.profile.hapticsEnabled, isFalse);
+  });
+
+  test('a fresh start counts installed and the install day once', () async {
+    final harness = Harness(now: now);
+    await harness.start();
+
+    expect(harness.analytics.named('installed'), hasLength(1));
+    expect(harness.analytics.named('day_active').single.dims, {
+      'since_install': '0',
+    });
+    expect(harness.controller.profile.lastActiveDayOrdinal, today);
+  });
+
+  test('a relaunch on the same day counts neither again', () async {
+    final first = Harness(now: now);
+    await first.start();
+
+    final second = Harness(saved: first.storage.writes.last, now: now);
+    await second.start();
+
+    expect(second.analytics.named('installed'), isEmpty);
+    expect(second.analytics.named('day_active'), isEmpty);
+  });
+
+  test('markActive counts once a day however often it is called', () async {
+    final harness = Harness(now: now);
+    await harness.start();
+    await harness.controller.markActive();
+    await harness.controller.markActive();
+
+    expect(harness.analytics.named('day_active'), hasLength(1));
+  });
+
+  test('two markActive calls in one tick count once', () async {
+    final harness = Harness(now: now);
+    await harness.start();
+    await Future.wait([
+      harness.controller.markActive(),
+      harness.controller.markActive(),
+    ]);
+
+    expect(harness.analytics.named('day_active'), hasLength(1));
+  });
+
+  test('day 1 and day 7 after install add the retention counters', () async {
+    final harness = Harness(now: now);
+    await harness.start();
+
+    harness.clock.advance(const Duration(days: 1));
+    await harness.controller.markActive();
+    expect(harness.analytics.named('day_active').last.dims, {
+      'since_install': '1',
+    });
+    expect(harness.analytics.named('retained_d1'), hasLength(1));
+
+    harness.clock.advance(const Duration(days: 1));
+    await harness.controller.markActive();
+    expect(harness.analytics.named('day_active'), hasLength(3));
+    expect(harness.analytics.named('retained_d1'), hasLength(1));
+    expect(harness.analytics.named('retained_d7'), isEmpty);
+
+    harness.clock.advance(const Duration(days: 5));
+    await harness.controller.markActive();
+    expect(harness.analytics.named('day_active').last.dims, {
+      'since_install': '7',
+    });
+    expect(harness.analytics.named('retained_d7'), hasLength(1));
+
+    harness.clock.advance(const Duration(days: 1));
+    await harness.controller.markActive();
+    expect(harness.analytics.named('day_active').last.dims, {
+      'since_install': '8-29',
+    });
+    expect(harness.analytics.named('retained_d7'), hasLength(1));
+  });
+
+  test('a failed write leaves the day unclaimed and counts nothing', () async {
+    final inner = MemoryStorage();
+    final storage = ThrowingStorage(inner);
+    final app = ProbeApp(storage: storage, now: now);
+    await app.start();
+    final counted = app.analytics.named('day_active').length;
+
+    app.clock.advance(const Duration(days: 1));
+    storage.failWhen = (d) => d.profile.lastActiveDayOrdinal == today + 1;
+    await app.controller.markActive();
+
+    expect(app.controller.profile.lastActiveDayOrdinal, today);
+    expect(app.analytics.named('day_active'), hasLength(counted));
+    expect((await inner.load())!.profile.lastActiveDayOrdinal, today);
+  });
+
+  test('the ad sink counts ad_shown with the kind that ran', () async {
+    final harness = Harness(now: now);
+    await harness.start();
+
+    harness.controller.onInterstitialShown();
+    harness.controller.onRewardedShown();
+    await harness.controller.idle;
+
+    expect(
+      harness.analytics.named('ad_shown').map((e) => e.dims['kind']),
+      ['interstitial', 'rewarded'],
+    );
+    expect(harness.analytics.named('interstitial_shown'), isEmpty);
   });
 
   test('selectTheme goes through Themes.select and reports the theme', () async {
