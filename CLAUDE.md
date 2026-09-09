@@ -28,7 +28,7 @@ assets            exemplar frames, store art and screenshots
 ## Run
 
 ```sh
-tools/check.sh                                   # flutter analyze + flutter test (387 tests)
+tools/check.sh                                   # flutter analyze + flutter test (406 tests)
 cd app && flutter run -d emulator-5554           # the app; add --dart-define=SETTLE_FAKE_SERVICES=true for fake ads/purchases
 cd app && flutter run -t lib/dev/play_harness.dart -d emulator-5554
 cd app && dart run bin/sim.dart --bot greedy --games 2000   # or --sweep

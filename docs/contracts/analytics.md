@@ -56,7 +56,9 @@ env var is set at all).
 | `theme_selected` | `theme` | 1 | `selectTheme` |
 
 `n` is the counter increment (the service adds it to the event's counter and to
-each dimension's histogram). The wire event carries `n` only when it is not 1.
+each dimension's histogram), sent through `AnalyticsService.countN(event, n,
+[dims])`; `count(event, [dims])` is `countN` with 1. The wire event carries `n`
+only when it is not 1. `RecordingAnalytics` records it on `AnalyticsEvent.n`.
 Numeric values other than revenue are bucketed at emit time; the service has
 no average or percentile primitive, so revenue is summed as micro-dollars and
 divided by player-days on the dashboard.

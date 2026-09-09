@@ -114,6 +114,18 @@ Run `tools/analytics_dashboard.sh` once with the Authelia login, then open
 is on a test track the widgets show only the smoke event `onboard_test` from
 2026-09-09.
 
+## Phase 1: done 2026-09-09
+
+Merged from `dash-p1` (d66d5d8). 390 -> 406 tests, analyze clean. Signature
+shipped: `countN(event, n, [dims])` beside `count(event, [dims])`, and
+`AnalyticsEvent(name, dims, [n = 1])`. `markActive` counts after the awaited
+`mutateWith`; moving the count back inside the function fails the persistence
+probe "the day is claimed on disk exactly when its events are counted" and the
+lifecycle test "a failed write leaves the day unclaimed and counts nothing".
+`start()` now writes twice (reconcile, then `markActive`). `app.dart` uses both
+`dayOrdinalOf` (core) and `Calendar.dayOrdinal` (meta), byte-identical; a
+later tidy may collapse them.
+
 ## Phase 2: done 2026-09-09
 
 `tools/analytics_dashboard.json` and `tools/analytics_dashboard.sh` on main;

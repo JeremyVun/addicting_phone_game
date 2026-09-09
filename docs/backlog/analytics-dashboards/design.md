@@ -109,8 +109,10 @@ is deliberate: the store's localised price is in local currency and cannot be
 summed. If the owner changes a price in Play Console, this table is the one
 to change too.
 
-**Client.** `AnalyticsService.count(event, [dims], {int n = 1})`; the wire
-event carries `n` only when it is not 1. `RecordingAnalytics` records `n`.
+**Client.** `AnalyticsService.countN(event, n, [dims])` beside the existing
+`count(event, [dims])` (Dart cannot combine an optional positional `dims` with
+a named `n`; as built 2026-09-09). The wire event carries `n` only when it is
+not 1. `RecordingAnalytics` records `n`.
 
 ### Dashboard layout (project `settle`, twelve widgets)
 

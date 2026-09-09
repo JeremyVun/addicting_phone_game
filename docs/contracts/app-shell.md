@@ -142,7 +142,7 @@ Routes: `/` Home, `/play` the stand-in, `/shop`, `/themes`, `/settings`,
   localised string. `PurchaseSink` — `applyPurchase(productId, token)` →
   `Purchases.grant`, `purchaseCompleted(token)` → `Purchases.markPurchaseCompleted`,
   `purchasePending`, `purchaseFailed`. Both grant paths are idempotent per token.
-- `AnalyticsService` — `count(event, [dims])` and an `n`-carrying variant (see `docs/contracts/analytics.md`). `NoopAnalytics`, `RecordingAnalytics`.
+- `AnalyticsService` — `count(event, [dims])`, `countN(event, n, [dims])` (see `docs/contracts/analytics.md`). `NoopAnalytics`, `RecordingAnalytics`.
 - `NotificationsService` — `requestPermission()`, `scheduleReminder(DateTime)`,
   `cancelReminder()`. `NoopNotifications`.
 
