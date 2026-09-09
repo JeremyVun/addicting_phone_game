@@ -158,3 +158,35 @@ SELECT date_trunc('day', to_timestamp(at/1000)) AS d,
        sum(coalesce(n, 1)) FILTER (WHERE t = 'revenue_usd_micros') / 1e6 AS usd
 FROM read_json_auto('settle-events-720h.ndjson') GROUP BY d ORDER BY d;
 ```
+
+## Verified on emulator 2026-09-09
+
+Private AVD `settle-dash-p3` (non-Play `google_apis` arm64 image, API 35,
+1080x2400, port 5600), debug APK built with
+`--dart-define=SETTLE_ANALYTICS_URL=http://10.0.2.2:8789 --dart-define=SETTLE_FAKE_SERVICES=true`,
+against `~/projects/analytics` on `docker compose` with read key `x`. The
+`settle` window was empty at the start, so the counters below are the deltas.
+
+| check | observed |
+| --- | --- |
+| fresh install, first launch | `installed` 1, `session_started` 1 `first: true`, `day_active` 1 `since_install: 0`, no `retained_d1` |
+| home button, then resume | unchanged: `session_started` 1, `day_active` 1 |
+| force-stop, relaunch | `session_started` 2, `first: {true: 1, false: 1}`; `day_active` 1, `installed` 1 |
+| five classic games | `game_started` 5 `mode: classic`, `game_ended` 5 (`continued: false`, `placements` `<20` 2 / `20-59` 3) |
+| interstitial from `playAgain` | `ad_shown` `kind: interstitial` 1; `interstitial_shown` absent from both `/stats` and the raw NDJSON |
+| Double coins (fake rewarded) | `ad_shown` `kind: rewarded` 1, `rewarded_completed` 1 `placement: doubleCoins` |
+| buy `coins_small` in the fake shop | balance 65 -> 565, and no `purchase_completed`, no `revenue_usd_micros` — the fake purchase service emits nothing, as this contract says |
+| `adb root`, clock +1 day, resume | `day_active` 2 with `since_install: 1`, `retained_d1` 1 |
+| clock +7 days from install | `day_active` 3, `since_install: {0,1,7}`, `retained_d7` 1 |
+| clock +8 days from install | `day_active` 4, `since_install` gains `8-29: 1`, no new retained counter |
+| raw NDJSON (22 rows) | `day_active` rows carry `d.since_install`; `installed`, `retained_d1`, `retained_d7` carry no `d`; no row carries `n`; every row carries `u` and `sid` |
+
+No defect found; no code changed.
+
+`/stats` reports `online: 1` and `byState: {active: 1}` for `settle` even though
+the app sends no heartbeats: the collector defaults a unit with `u` and no `st`
+to state `active`. The dashboard's `showPresence: false` hides it.
+
+The interstitial's 30 s `gameDurationMs` gate reads `GameState.elapsedMs`, which
+only advances on a placement, so a game left idle on the game-over sheet does
+not age past the gate; the first attempt at this check failed for that reason.

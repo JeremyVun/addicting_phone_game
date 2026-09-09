@@ -140,3 +140,18 @@ script. Phase 1 chose `countN(event, n, [dims])` beside `count(event, [dims])`
 because Dart cannot mix optional positional and named parameters; the
 contract's wording is "an `n`-carrying variant" until phase 1 lands and the
 exact name is recorded.
+
+## Phase 3: done 2026-09-09
+
+Private AVD `settle-dash-p3` (non-Play API 35 image, so `adb root` and a moved
+clock worked; `settings put global auto_time 0` first or the date snaps back).
+Final `/stats` deltas: `installed` 1, `session_started` 2 (`first` true 1 /
+false 1), `day_active` 4 (`since_install` 0/1/7/8-29 one each), `retained_d1`
+1, `retained_d7` 1, `ad_shown` 2 (interstitial 1, rewarded 1),
+`rewarded_completed` 1, `game_started` 5, `game_ended` 5; `interstitial_shown`
+absent; no `purchase_completed` or `revenue_usd_micros` from the fake shop, as
+the contract says. Raw NDJSON carried `d.since_install` on `day_active`, no
+`d` on the three plain counters, no `n` anywhere. No defect. `revenue_usd_micros`
+stays unit-test-only until a real AdMob fill and a Play track exist. Record
+appended to `docs/contracts/analytics.md`. AVD deleted, `emulator-5554`
+untouched.
