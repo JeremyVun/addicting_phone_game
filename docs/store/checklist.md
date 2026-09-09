@@ -122,6 +122,11 @@ testers under Setup > License testing.
 3. Upload `app/build/app/outputs/mapping/release/mapping.txt` as the
    deobfuscation file, or Android Vitals crashes are unreadable.
 4. Then production, once closed testing (step 1.2) is satisfied if it applies.
+5. Build the track with `--dart-define=SETTLE_ANALYTICS_URL=https://analytics.jeremyvun.com`
+   (and the key if ingest is keyed) and install the `settle` dashboard once:
+   `tools/analytics_dashboard.sh` with the Authelia login, then open
+   `https://analytics.jeremyvun.com/ui` and pick `settle`. The layout and the
+   numbers it shows are in `docs/contracts/analytics.md`.
 
 `versionCode` must strictly increase and Play permanently rejects one it has
 already seen, including from a deleted draft. Bump with

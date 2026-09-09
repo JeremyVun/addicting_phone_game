@@ -123,6 +123,16 @@ was edited in the browser since the script read the revision: rerun.
 | 11 | Games by placements | breakdown | `game_ended` | `placements` |
 | 12 | Active by days since install | breakdown | `day_active` | `since_install` |
 
+If the login step of the script fails, the twelve rows can be entered by hand
+in the dashboard's Edit view; the JSON is the list. Only a browser session or
+the read key can write past the edge, so the read key alone never suffices.
+
+The counters exist because the service has no per-user primitives: its dedup
+key lives 6 h, not a day, and an hourly row's `unique_units` counts a player
+once per hour, so daily uniques cannot be summed from aggregates. DAU and
+retention are therefore claimed at emit time against the profile and only
+divided on the dashboard.
+
 `showPresence` is off (the app sends no heartbeats). Widget 2 over a 24 h
 range is DAU; over longer ranges it is the sum of daily actives (player-days),
 which is the denominator widgets 5 to 9 need.
