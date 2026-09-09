@@ -68,6 +68,7 @@ class Product {
   const Product({
     required this.id,
     required this.kind,
+    required this.usdMicros,
     this.coins = 0,
     this.grantsAdFree = false,
     this.grantsThemePack = false,
@@ -75,6 +76,9 @@ class Product {
 
   final String id;
   final ProductKind kind;
+
+  /// The USD list price; the store's localised price cannot be summed.
+  final int usdMicros;
   final int coins;
   final bool grantsAdFree;
   final bool grantsThemePack;
@@ -93,14 +97,31 @@ class Products {
     Product(
       id: removeAds,
       kind: ProductKind.nonConsumable,
+      usdMicros: 3990000,
       grantsAdFree: true,
     ),
-    Product(id: coinsSmall, kind: ProductKind.consumable, coins: 500),
-    Product(id: coinsMedium, kind: ProductKind.consumable, coins: 3000),
-    Product(id: coinsLarge, kind: ProductKind.consumable, coins: 8000),
+    Product(
+      id: coinsSmall,
+      kind: ProductKind.consumable,
+      usdMicros: 990000,
+      coins: 500,
+    ),
+    Product(
+      id: coinsMedium,
+      kind: ProductKind.consumable,
+      usdMicros: 4990000,
+      coins: 3000,
+    ),
+    Product(
+      id: coinsLarge,
+      kind: ProductKind.consumable,
+      usdMicros: 9990000,
+      coins: 8000,
+    ),
     Product(
       id: themePackAll,
       kind: ProductKind.nonConsumable,
+      usdMicros: 2990000,
       grantsThemePack: true,
     ),
   ];

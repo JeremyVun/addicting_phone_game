@@ -8,7 +8,8 @@ import 'storage.dart';
 
 bool get _useFakes => kDebugMode && kFakeServices;
 
-AdsService buildAds() => _useFakes ? FakeAdsService() : AdMobAdsService();
+AdsService buildAds() =>
+    _useFakes ? FakeAdsService() : AdMobAdsService(analytics: buildAnalytics());
 
 PurchaseService buildPurchases() => _useFakes
     ? FakePurchaseService()

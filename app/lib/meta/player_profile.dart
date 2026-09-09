@@ -42,6 +42,7 @@ class PlayerProfile {
     this.reminderPermissionAsked = false,
     this.analyticsUnitId = '',
     this.createdAtMs = 0,
+    this.lastActiveDayOrdinal,
   }) : unlockedThemes = Set.unmodifiable({defaultThemeSlot, ...unlockedThemes}),
        achievements = Set.unmodifiable(achievements),
        dailyBest = Map.unmodifiable(dailyBest),
@@ -97,6 +98,7 @@ class PlayerProfile {
   final bool reminderPermissionAsked;
   final String analyticsUnitId;
   final int createdAtMs;
+  final int? lastActiveDayOrdinal;
 
   int get level => Levels.levelFor(xp);
 
@@ -140,6 +142,7 @@ class PlayerProfile {
     bool? reminderPermissionAsked,
     String? analyticsUnitId,
     int? createdAtMs,
+    int? lastActiveDayOrdinal,
   }) => PlayerProfile(
     coins: coins ?? this.coins,
     xp: xp ?? this.xp,
@@ -186,6 +189,7 @@ class PlayerProfile {
         reminderPermissionAsked ?? this.reminderPermissionAsked,
     analyticsUnitId: analyticsUnitId ?? this.analyticsUnitId,
     createdAtMs: createdAtMs ?? this.createdAtMs,
+    lastActiveDayOrdinal: lastActiveDayOrdinal ?? this.lastActiveDayOrdinal,
   );
 
   Map<String, dynamic> toJson() => {
@@ -225,6 +229,7 @@ class PlayerProfile {
     'reminderPermissionAsked': reminderPermissionAsked,
     'analyticsUnitId': analyticsUnitId,
     'createdAtMs': createdAtMs,
+    'lastActiveDayOrdinal': lastActiveDayOrdinal,
   };
 
   static PlayerProfile fromJson(Map<String, dynamic> json) => PlayerProfile(
@@ -265,6 +270,7 @@ class PlayerProfile {
     reminderPermissionAsked: json['reminderPermissionAsked'] as bool? ?? false,
     analyticsUnitId: json['analyticsUnitId'] as String? ?? '',
     createdAtMs: json['createdAtMs'] as int? ?? 0,
+    lastActiveDayOrdinal: json['lastActiveDayOrdinal'] as int?,
   );
 
   static Map<String, int> _ordinalMapToJson(Map<int, int> map) => {
@@ -321,6 +327,7 @@ class PlayerProfile {
     reminderPermissionAsked,
     analyticsUnitId,
     createdAtMs,
+    lastActiveDayOrdinal,
   ];
 
   @override

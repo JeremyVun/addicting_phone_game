@@ -42,4 +42,16 @@ void main() {
     expect(Buckets.level(19), '10-19');
     expect(Buckets.level(20), '20+');
   });
+
+  test('sinceInstall keeps day 1 and day 7 alone for retention', () {
+    expect(Buckets.sinceInstall(0), '0');
+    expect(Buckets.sinceInstall(1), '1');
+    expect(Buckets.sinceInstall(2), '2-6');
+    expect(Buckets.sinceInstall(6), '2-6');
+    expect(Buckets.sinceInstall(7), '7');
+    expect(Buckets.sinceInstall(8), '8-29');
+    expect(Buckets.sinceInstall(29), '8-29');
+    expect(Buckets.sinceInstall(30), '30+');
+    expect(Buckets.sinceInstall(-3), '0', reason: 'a clock moved back');
+  });
 }

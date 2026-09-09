@@ -252,6 +252,13 @@ class PlayPurchaseService implements PurchaseService {
     await sink.purchaseCompleted(token);
     if (update.status == PurchaseStatus.purchased) {
       analytics.count('purchase_completed', {'product': update.productID});
+      final product = Products.byId(update.productID);
+      if (product != null) {
+        analytics.countN('revenue_usd_micros', product.usdMicros, {
+          'source': 'iap',
+          'product': update.productID,
+        });
+      }
     }
   }
 

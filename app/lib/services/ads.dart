@@ -6,6 +6,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../config.dart';
 import '../meta/economy.dart' show RewardedPlacement;
 import 'ad_ids.dart';
+import 'analytics.dart';
 
 /// The placement enum is `meta`'s, re-exported so callers need one import and
 /// the two layers can never drift apart.
@@ -105,12 +106,14 @@ class AdCallbacks {
     required this.onClosed,
     required this.onFailedToShow,
     this.onEarnedReward,
+    this.onPaid,
   });
 
   final void Function() onShown;
   final void Function() onClosed;
   final void Function() onFailedToShow;
   final void Function()? onEarnedReward;
+  final void Function(double valueMicros, String currencyCode)? onPaid;
 }
 
 abstract class LoadedAd {
@@ -130,17 +133,20 @@ abstract class AdPlatform {
 
 class AdMobAdsService implements AdsService {
   AdMobAdsService({
+    AnalyticsService analytics = const NoopAnalytics(),
     AdPlatform? platform,
     AdIds? ids,
     this.forceEeaGeography = kForceEeaConsent,
     Future<void> Function(Duration)? delay,
-  }) : _platform = platform ?? MobileAdsPlatform(),
+  }) : _analytics = analytics,
+       _platform = platform ?? MobileAdsPlatform(),
        _ids = ids ?? AdIds.current,
        _delay = delay ?? _wait;
 
   static const Duration minBackoff = Duration(seconds: 1);
   static const Duration maxBackoff = Duration(seconds: 60);
 
+  final AnalyticsService _analytics;
   final AdPlatform _platform;
   final AdIds _ids;
   final Future<void> Function(Duration) _delay;
@@ -234,6 +240,7 @@ class AdMobAdsService implements AdsService {
       AdCallbacks(
         onShown: () => _sink?.onRewardedShown(),
         onEarnedReward: () => earned = true,
+        onPaid: (value, currency) => _countRevenue('rewarded', value, currency),
         onClosed: () {
           _sink?.onRewardedClosed();
           if (!done.isCompleted) done.complete();
@@ -257,6 +264,8 @@ class AdMobAdsService implements AdsService {
     ad.show(
       AdCallbacks(
         onShown: () => _sink?.onInterstitialShown(),
+        onPaid: (value, currency) =>
+            _countRevenue('interstitial', value, currency),
         onClosed: () {
           _sink?.onInterstitialClosed();
           if (!done.isCompleted) done.complete();
@@ -269,6 +278,17 @@ class AdMobAdsService implements AdsService {
     await done.future;
     ad.dispose();
     unawaited(_keepLoaded(AdKind.interstitial));
+  }
+
+  /// Only USD sums; a localised amount cannot be added to the same counter.
+  void _countRevenue(String source, double valueMicros, String currencyCode) {
+    if (currencyCode != 'USD' || valueMicros <= 0) {
+      _log('paid event dropped: $valueMicros $currencyCode');
+      return;
+    }
+    _analytics.countN('revenue_usd_micros', valueMicros.round(), {
+      'source': source,
+    });
   }
 
   @override
@@ -417,6 +437,8 @@ class _RewardedHandle implements LoadedAd {
   @override
   void show(AdCallbacks callbacks) {
     _ad.fullScreenContentCallback = _contentCallback<RewardedAd>(callbacks);
+    _ad.onPaidEvent = (ad, valueMicros, precision, currencyCode) =>
+        callbacks.onPaid?.call(valueMicros, currencyCode);
     unawaited(
       _ad.show(
         onUserEarnedReward: (_, _) => callbacks.onEarnedReward?.call(),
@@ -436,6 +458,8 @@ class _InterstitialHandle implements LoadedAd {
   @override
   void show(AdCallbacks callbacks) {
     _ad.fullScreenContentCallback = _contentCallback<InterstitialAd>(callbacks);
+    _ad.onPaidEvent = (ad, valueMicros, precision, currencyCode) =>
+        callbacks.onPaid?.call(valueMicros, currencyCode);
     unawaited(_ad.show());
   }
 

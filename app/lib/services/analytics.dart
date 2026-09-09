@@ -7,8 +7,11 @@ import 'package:flutter/widgets.dart';
 
 import '../config.dart';
 
+/// `countN` carries the increment because Dart cannot give `count` an optional
+/// positional `dims` and a named `n` at once.
 abstract class AnalyticsService {
   void count(String event, [Map<String, String> dims]);
+  void countN(String event, int n, [Map<String, String> dims]);
 }
 
 class NoopAnalytics implements AnalyticsService {
@@ -16,16 +19,23 @@ class NoopAnalytics implements AnalyticsService {
 
   @override
   void count(String event, [Map<String, String> dims = const {}]) {}
+
+  @override
+  void countN(String event, int n, [Map<String, String> dims = const {}]) {}
 }
 
 class AnalyticsEvent {
-  const AnalyticsEvent(this.name, this.dims);
+  const AnalyticsEvent(this.name, this.dims, [this.n = 1]);
 
   final String name;
   final Map<String, String> dims;
+  final int n;
 
   @override
-  String toString() => dims.isEmpty ? name : '$name $dims';
+  String toString() {
+    final suffix = dims.isEmpty ? name : '$name $dims';
+    return n == 1 ? suffix : '$suffix x$n';
+  }
 }
 
 class RecordingAnalytics implements AnalyticsService {
@@ -36,7 +46,11 @@ class RecordingAnalytics implements AnalyticsService {
 
   @override
   void count(String event, [Map<String, String> dims = const {}]) =>
-      events.add(AnalyticsEvent(event, dims));
+      countN(event, 1, dims);
+
+  @override
+  void countN(String event, int n, [Map<String, String> dims = const {}]) =>
+      events.add(AnalyticsEvent(event, dims, n));
 }
 
 abstract class AnalyticsTransport {
@@ -108,12 +122,17 @@ class HttpAnalytics implements AnalyticsService {
   bool _sending = false;
 
   @override
-  void count(String event, [Map<String, String> dims = const {}]) {
+  void count(String event, [Map<String, String> dims = const {}]) =>
+      countN(event, 1, dims);
+
+  @override
+  void countN(String event, int n, [Map<String, String> dims = const {}]) {
     if (_queue.length >= queueCap) _queue.removeAt(0);
     _queue.add({
       'p': kAnalyticsProject,
       't': event,
       'sid': _sessionId,
+      if (n != 1) 'n': n,
       if (dims.isNotEmpty) 'd': dims,
     });
     if (_queue.length >= flushThreshold) {

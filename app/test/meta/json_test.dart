@@ -41,6 +41,7 @@ final loaded = PlayerProfile(
   reminderPermissionAsked: true,
   analyticsUnitId: '5f1b1b7c-0d1e-4a2b-8c3d-9e0f1a2b3c4d',
   createdAtMs: 1747000000000,
+  lastActiveDayOrdinal: 241,
 );
 
 void main() {
@@ -54,6 +55,13 @@ void main() {
     expect(decoded.dailyBest[239], 1200);
     expect(decoded.unlockedThemes, {1, 5, 11});
     expect(loaded.toJson()['v'], PlayerProfile.version);
+  });
+
+  test('a profile stored before lastActiveDayOrdinal loads it as null', () {
+    final json = jsonDecode(jsonEncode(loaded.toJson())) as Map<String, dynamic>;
+    expect(PlayerProfile.fromJson(json).lastActiveDayOrdinal, 241);
+    json.remove('lastActiveDayOrdinal');
+    expect(PlayerProfile.fromJson(json).lastActiveDayOrdinal, isNull);
   });
 
   test('equality is deep, not identity', () {

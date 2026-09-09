@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../app.dart';
@@ -54,6 +56,7 @@ class _SettleAppState extends State<SettleApp> with WidgetsBindingObserver {
         widget.controller.scheduleReminderIfEnabled();
       case AppLifecycleState.resumed:
         widget.controller.cancelReminder();
+        unawaited(widget.controller.markActive());
       case _:
         break;
     }

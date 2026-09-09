@@ -131,6 +131,31 @@ void main() {
     analytics.dispose();
   });
 
+  test('n rides the wire only when it is not 1', () async {
+    final analytics = build();
+    analytics
+      ..count('a')
+      ..countN('b', 1)
+      ..countN('c', 12000, {'source': 'rewarded'});
+    await analytics.flush();
+    final body = transport.sent.single.$3.cast<Map<String, dynamic>>();
+    expect(body[0], isNot(contains('n')));
+    expect(body[1], isNot(contains('n')));
+    expect(body[2]['n'], 12000);
+    expect(body[2]['d'], {'source': 'rewarded'});
+    analytics.dispose();
+  });
+
+  test('RecordingAnalytics records n, defaulting to 1', () {
+    final analytics = RecordingAnalytics()
+      ..count('a')
+      ..countN('b', 990000, {'source': 'iap'});
+    expect(analytics.named('a').single.n, 1);
+    final revenue = analytics.named('b').single;
+    expect(revenue.n, 990000);
+    expect(revenue.dims, {'source': 'iap'});
+  });
+
   test('count never blocks the caller', () {
     final analytics = build(flushThreshold: 1);
     expect(() => analytics.count('a'), returnsNormally);

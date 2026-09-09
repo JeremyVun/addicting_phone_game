@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:settle/services/ad_ids.dart';
 import 'package:settle/services/ads.dart';
+import 'package:settle/services/analytics.dart';
 
 class FakeLoadedAd implements LoadedAd {
-  FakeLoadedAd({this.failToShow = false, this.earnsReward = true});
+  FakeLoadedAd({this.failToShow = false, this.earnsReward = true, this.paid});
 
   final bool failToShow;
   final bool earnsReward;
+  final (double, String)? paid;
   AdCallbacks? callbacks;
   int shows = 0;
   int disposals = 0;
@@ -22,6 +24,8 @@ class FakeLoadedAd implements LoadedAd {
       return;
     }
     callbacks.onShown();
+    final revenue = paid;
+    if (revenue != null) callbacks.onPaid?.call(revenue.$1, revenue.$2);
     if (earnsReward) callbacks.onEarnedReward?.call();
     callbacks.onClosed();
   }
@@ -89,6 +93,7 @@ const AdIds testIds = AdIds(
 
 void main() {
   late RecordingSink sink;
+  late RecordingAnalytics analytics;
   late FakeAdPlatform platform;
   late List<Duration> waits;
   // The reload loop retries for ever; the test stalls it to end the pump.
@@ -96,12 +101,14 @@ void main() {
 
   setUp(() {
     sink = RecordingSink();
+    analytics = RecordingAnalytics();
     platform = FakeAdPlatform();
     waits = [];
     stallAfter = 4;
   });
 
   AdMobAdsService build({AdIds ids = testIds}) => AdMobAdsService(
+    analytics: analytics,
     platform: platform,
     ids: ids,
     delay: (d) {
@@ -224,6 +231,38 @@ void main() {
     await service.showPrivacyOptions();
     expect(platform.privacyForms, 1);
     expect(service.privacyOptionsRequired, isFalse);
+  });
+
+  test('a USD paid event counts its micros against the ad kind', () async {
+    platform.queue(AdKind.rewarded, [FakeLoadedAd(paid: (12000.0, 'USD'))]);
+    final service = await started();
+    await service.showRewarded(RewardedPlacement.reroll);
+
+    final revenue = analytics.named('revenue_usd_micros').single;
+    expect(revenue.n, 12000);
+    expect(revenue.dims, {'source': 'rewarded'});
+  });
+
+  test('a paid event in another currency or at zero counts nothing', () async {
+    platform.queue(AdKind.rewarded, [
+      FakeLoadedAd(paid: (12000.0, 'EUR')),
+      FakeLoadedAd(paid: (0.0, 'USD')),
+    ]);
+    final service = await started();
+    await service.showRewarded(RewardedPlacement.reroll);
+    await service.showRewarded(RewardedPlacement.reroll);
+
+    expect(analytics.named('revenue_usd_micros'), isEmpty);
+  });
+
+  test('an interstitial paid event is sourced to the interstitial', () async {
+    platform.queue(AdKind.interstitial, [FakeLoadedAd(paid: (250.0, 'USD'))]);
+    final service = await started();
+    await service.showInterstitial();
+
+    final revenue = analytics.named('revenue_usd_micros').single;
+    expect(revenue.n, 250);
+    expect(revenue.dims, {'source': 'interstitial'});
   });
 }
 

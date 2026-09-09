@@ -207,6 +207,31 @@ void main() {
     }
   });
 
+  test('the day is claimed on disk exactly when its events are counted',
+      () async {
+    final inner = MemoryStorage();
+    final storage = ThrowingStorage(inner);
+    final app = ProbeApp(storage: storage, now: now);
+    await app.start();
+    final installDay = app.controller.profile.lastActiveDayOrdinal;
+
+    app.clock.advance(const Duration(days: 1));
+    storage.failWhen = (d) => d.profile.lastActiveDayOrdinal != installDay;
+    await app.controller.markActive();
+
+    expect((await inner.load())!.profile.lastActiveDayOrdinal, installDay);
+    expect(app.controller.profile.lastActiveDayOrdinal, installDay);
+    expect(app.analytics.named('day_active'), hasLength(1));
+    expect(app.analytics.named('retained_d1'), isEmpty);
+
+    storage.failWhen = null;
+    await app.controller.markActive();
+
+    expect((await inner.load())!.profile.lastActiveDayOrdinal, installDay! + 1);
+    expect(app.analytics.named('day_active'), hasLength(2));
+    expect(app.analytics.named('retained_d1'), hasLength(1));
+  });
+
   test('a failed write behind a fire-and-forget mutation is handled', () async {
     final inner = MemoryStorage();
     final storage = ThrowingStorage(inner);
