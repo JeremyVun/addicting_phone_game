@@ -10,7 +10,6 @@ upload key backup, the listing and screenshots, an internal test track.
 - Monochrome-safe notification icon check on real devices; exact-time
   reminder opt-in if inexact delivery proves too late.
 - Server receipt validation for coin packs if refund abuse shows up.
-- Analytics dashboards on the shared service: D1/D7, ads per DAU, ARPDAU.
 - Tune the director from live `game_ended` placement buckets.
 
 ## Later

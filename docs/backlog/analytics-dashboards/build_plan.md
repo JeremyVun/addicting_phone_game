@@ -113,3 +113,18 @@ Run `tools/analytics_dashboard.sh` once with the Authelia login, then open
 `https://analytics.jeremyvun.com/ui` and pick project `settle`. Until the app
 is on a test track the widgets show only the smoke event `onboard_test` from
 2026-09-09.
+
+## Phase 2: done 2026-09-09
+
+`tools/analytics_dashboard.json` and `tools/analytics_dashboard.sh` on main;
+`bash -n`, shellcheck (via `koalaman/shellcheck:stable`) and `json.tool` clean.
+Dry PUT against the local compose (`ANALYTICS_READ_KEY=x`) returned HTTP 200
+with revision 1, and revision 2 on a rerun; the `settle-dash-*` temp files were
+removed on exit. Credentials go to Python on stdin only, never as argv.
+Contracts updated: analytics (event table, `n`, day bookkeeping, revenue,
+dashboard, exact queries), monetisation (paid events, list prices), app-shell
+(launch order, `ad_shown`). Roadmap line removed; CLAUDE.md run table has the
+script. Phase 1 chose `countN(event, n, [dims])` beside `count(event, [dims])`
+because Dart cannot mix optional positional and named parameters; the
+contract's wording is "an `n`-carrying variant" until phase 1 lands and the
+exact name is recorded.

@@ -29,7 +29,9 @@ and to `bootstrap()` (section 8).
    `InterstitialPolicy.reconcileClock`, then discarding a saved **daily** whose
    `dayOrdinal` is not today (a saved classic survives any gap).
 3. `purchases.start(this)`, `ads.start(this)`.
-4. analytics `session_started {first}`.
+4. analytics `installed` (only when nothing was loaded) and `session_started {first}`.
+5. `markActive()`: the day-active mutation of `docs/contracts/analytics.md`,
+   also called from `ui/app.dart` on every lifecycle `resumed`.
 
 `SettleApp` then calls `controller.resumeFromLaunch()` after the first frame:
 a pending `lastResult` reopens the game over sheet on Home; otherwise a saved
@@ -140,7 +142,7 @@ Routes: `/` Home, `/play` the stand-in, `/shop`, `/themes`, `/settings`,
   localised string. `PurchaseSink` — `applyPurchase(productId, token)` →
   `Purchases.grant`, `purchaseCompleted(token)` → `Purchases.markPurchaseCompleted`,
   `purchasePending`, `purchaseFailed`. Both grant paths are idempotent per token.
-- `AnalyticsService` — `count(event, [dims])`. `NoopAnalytics`, `RecordingAnalytics`.
+- `AnalyticsService` — `count(event, [dims])` and an `n`-carrying variant (see `docs/contracts/analytics.md`). `NoopAnalytics`, `RecordingAnalytics`.
 - `NotificationsService` — `requestPermission()`, `scheduleReminder(DateTime)`,
   `cancelReminder()`. `NoopNotifications`.
 
@@ -154,8 +156,10 @@ order. `FakePurchaseService` grants after 300 ms with the token
 `session_started {first}`, `game_started {mode}`,
 `game_ended {mode, score, placements, continued}` (buckets from `Buckets`),
 `rewarded_completed {placement}`, `rewarded_unavailable {placement}`,
-`interstitial_shown`, `theme_selected {theme}`. The rest of design 12 belongs
-to later phases.
+`ad_shown {kind}` (from the `AdSink` hooks; `interstitial_shown` was replaced
+before launch), `theme_selected {theme}`. `installed`, `day_active`,
+`retained_d1`, `retained_d7` and `revenue_usd_micros` are in
+`docs/contracts/analytics.md`.
 
 ## 8. What integration must do
 

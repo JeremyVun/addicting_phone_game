@@ -34,6 +34,7 @@ cd app && flutter run -t lib/dev/play_harness.dart -d emulator-5554
 cd app && dart run bin/sim.dart --bot greedy --games 2000   # or --sweep
 tools/emu.sh install|launch|shot <name>|drag x1 y1 x2 y2    # see its header
 tools/release.sh keystore|apk|bundle [--allow-test-ads]     # signed builds; refuses sample ad ids
+tools/analytics_dashboard.sh                     # install the settle dashboard layout (Authelia login prompted)
 ```
 
 ## Rules

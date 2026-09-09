@@ -1,0 +1,18 @@
+{
+  "showPresence": false,
+  "widgets": [
+    {"title": "Installs", "kind": "count", "event": "installed", "complement": false},
+    {"title": "Active players", "kind": "count", "event": "day_active", "complement": false},
+    {"title": "D1 retention", "kind": "ratio", "event": "retained_d1", "denominator": "installed", "complement": false},
+    {"title": "D7 retention", "kind": "ratio", "event": "retained_d7", "denominator": "installed", "complement": false},
+    {"title": "Ads per active player", "kind": "ratio", "event": "ad_shown", "denominator": "day_active", "complement": false},
+    {"title": "Rewards per active player", "kind": "ratio", "event": "rewarded_completed", "denominator": "day_active", "complement": false},
+    {"title": "ARPDAU (USD micros)", "kind": "ratio", "event": "revenue_usd_micros", "denominator": "day_active", "complement": false},
+    {"title": "Revenue by source", "kind": "breakdown", "event": "revenue_usd_micros", "dimension": "source", "complement": false},
+    {"title": "Games per active player", "kind": "ratio", "event": "game_started", "denominator": "day_active", "complement": false},
+    {"title": "Purchases", "kind": "count", "event": "purchase_completed", "complement": false},
+    {"title": "Games by placements", "kind": "breakdown", "event": "game_ended", "dimension": "placements", "complement": false},
+    {"title": "Active by days since install", "kind": "breakdown", "event": "day_active", "dimension": "since_install", "complement": false}
+  ],
+  "experiment": {"dimension": "", "exposure": "", "outcome": "", "baseline": "", "complement": false}
+}

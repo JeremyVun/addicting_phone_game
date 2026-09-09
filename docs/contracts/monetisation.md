@@ -66,6 +66,13 @@ state machine through a fake platform, so no test touches a platform channel.
   loaded immediately.
 - `showRewarded` resolves `true` only from `onUserEarnedReward`. Dismissal never
   grants. With no ad loaded it resolves `false` without a sink transition.
+- `AdCallbacks.onPaid(valueMicros, currencyCode)` is AdMob's `onPaidEvent`,
+  set on the ad before `show`. The service counts
+  `revenue_usd_micros {source: rewarded|interstitial}` with `n = valueMicros`
+  when the currency is `USD` and the value is positive; other currencies are
+  logged and dropped. `AdMobAdsService` takes the `AnalyticsService` the same
+  way `PlayPurchaseService` does (`NoopAnalytics` by default, wired in
+  `wiring_monetisation.dart`).
 - Sink transitions come from the full-screen callbacks:
   `onAdShowedFullScreenContent` → `onRewardedShown`/`onInterstitialShown`,
   `onAdDismissedFullScreenContent` → `onRewardedClosed`/`onInterstitialClosed`.
@@ -124,8 +131,9 @@ Deliver:
    moves the token from `pendingPurchaseTokens` to `completedPurchaseTokens`. A
    purchase whose consume keeps failing therefore stays granted and stays
    deduplicated for ever.
-6. `purchase_completed {product}` is emitted here for `purchased` only, not for
-   `restored`.
+6. `purchase_completed {product}` and `revenue_usd_micros {source: iap, product}`
+   with `n = Product.usdMicros` (the USD list price) are emitted here for
+   `purchased` only, not for `restored`.
 
 There is no server-side receipt validation in v1 (design 8.3); the risk is
 accepted. `restore()` cannot bring back consumed coin packs — Play stops
