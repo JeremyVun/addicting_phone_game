@@ -31,7 +31,8 @@ Seam contract:
   `controller.markActive()` on `resumed`.
 - `AdSink` hooks count `ad_shown{kind}`; `interstitial_shown` is gone.
 - `AdCallbacks.onPaid`; `_RewardedHandle` / `_InterstitialHandle` set
-  `ad.onPaidEvent` before showing; `AdMobAdsService({required AnalyticsService analytics, ...})`
+  `ad.onPaidEvent` before showing; `AdMobAdsService({AnalyticsService analytics = const NoopAnalytics(), ...})`
+  (the `PlayPurchaseService` shape, so existing tests keep constructing it bare)
   counts `revenue_usd_micros` per the design; `FakeAdsService` untouched.
 - `PlayPurchaseService` counts `revenue_usd_micros{source: iap, product}` with
   `n = product.usdMicros` next to `purchase_completed`.
@@ -48,8 +49,9 @@ Verify gate (all must pass, run unpiped so the exit code is real):
   `onRewardedShown` count `ad_shown` with the right kind.
 - Probe: `app/test/probes/persistence_probe_test.dart` extended with the new
   field so a crash between the mutation and the flush leaves
-  `lastActiveDayOrdinal` consistent with what was counted (count happens
-  inside the mutation, after the profile is updated in the returned data).
+  `lastActiveDayOrdinal` consistent with what was counted (the count happens
+  only after the mutation's write succeeds; a failed write counts nothing and
+  the next `markActive` counts once).
 
 Done marker: `## Phase 1: done <date>` appended to this file with the test
 count.

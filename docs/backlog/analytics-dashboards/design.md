@@ -68,12 +68,15 @@ because ratio widgets need a counter denominator.
 absent in stored v2 profiles, no version bump). `AppController.markActive()`
 runs one mutation: with `today = Calendar.dayOrdinal(now)`, if
 `profile.lastActiveDayOrdinal == today` the data is returned unchanged;
-otherwise the profile is updated and, inside the same mutation function,
-`day_active` (and the retention counters) are counted. Counting inside the
-mutation is what makes a resume that races `start` unable to double-emit:
-`mutateWith` runs mutation functions strictly one after another on the
-envelope queue and never replays one. `AnalyticsService.count` enqueues
-synchronously and never throws, so it is safe inside the queue.
+otherwise the profile is updated and the mutation returns, as its
+`mutateWith` result, the events to count; `markActive` counts them only after
+the write has succeeded. The serial queue is what makes a resume that races
+`start` unable to double-emit: the second `markActive` runs against the
+committed profile that already carries today's ordinal. Counting after the
+write rather than inside the function keeps a failed write from emitting an
+event the disk never recorded (build-stage refinement, 2026-09-09: the
+original wording had the count inside the function, which runs before the
+write and so contradicted the failed-write rule below).
 
 `since_install = today - Calendar.dayOrdinal(profile.createdAt)`. A
 `createdAtMs` of 0 (pre-field profiles) yields a huge day count and lands in
